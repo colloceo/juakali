@@ -3,7 +3,7 @@ session_start();
 require_once '../functions.php';
 
 if (isset($_SESSION['user_id'])) {
-    header("Location: dashboard.php");
+    header("Location: artisan-dashboard.php");
     exit();
 }
 
