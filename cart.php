@@ -44,14 +44,14 @@ $total = array_sum(array_map(fn($item) => $item['price'] * $item['quantity'], $c
 <body>
     <nav class="navbar navbar-expand-lg">
         <div class="container-fluid">
-            <a class="navbar-brand" href="index-after-login.html">JuaKali</a>
+            <a class="navbar-brand" href="index-after-login.php">JuaKali</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="index-after-login.html#products">Products</a></li>
-                    <li class="nav-item"><a class="nav-link" href="index-after-login.html#artisans">Artisans</a></li>
+                    <li class="nav-item"><a class="nav-link" href="index-after-login.php#products">Products</a></li>
+                    <li class="nav-item"><a class="nav-link" href="index-after-login.php#artisans">Artisans</a></li>
                     <li class="nav-item"><a class="nav-link" href="cart.php">Cart</a></li>
                 </ul>
             </div>
@@ -60,7 +60,7 @@ $total = array_sum(array_map(fn($item) => $item['price'] * $item['quantity'], $c
     <div class="container">
         <h2 class="text-center my-4" style="font-family: 'Lora', serif; color: #FF5733;">Your Cart</h2>
         <?php if (empty($cart_items)): ?>
-            <p>Your cart is empty. <a href="index-after-login.html">Continue Shopping</a></p>
+            <p>Your cart is empty. <a href="index-after-login.php">Continue Shopping</a></p>
         <?php else: ?>
             <table class="cart-table">
                 <thead>
