@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once 'functions.php';
+require_once '../functions.php';
 
 if (!isset($_SESSION['admin_id'])) {
     header("Location: admin-login.php");

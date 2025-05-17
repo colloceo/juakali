@@ -128,16 +128,37 @@ function updateArtisanRating($artisan_id) {
 }
 
 function uploadImage($file) {
-    $target_dir = "uploads/";
+    $root_dir = dirname(__DIR__);
+    $target_dir = $root_dir . DIRECTORY_SEPARATOR . "uploads" . DIRECTORY_SEPARATOR;
+    
+    if (!is_dir($target_dir)) {
+        mkdir($target_dir, 0755, true);
+    }
+    
     $target_file = $target_dir . basename($file["name"]);
     $imageFileType = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
     $allowed_types = ['jpg', 'jpeg', 'png', 'gif'];
+    
     if (!in_array($imageFileType, $allowed_types)) {
         return null;
     }
+    
     if (move_uploaded_file($file["tmp_name"], $target_file)) {
-        return $target_file;
+        return "uploads/" . basename($file["name"]);
     }
     return null;
+}
+
+function createProduct($artisan_id, $name, $description, $price, $image_url = null) {
+    global $pdo;
+    $stmt = $pdo->prepare("INSERT INTO products (artisan_id, name, description, price, image_url, status) VALUES (?, ?, ?, ?, ?, 'Pending')");
+    return $stmt->execute([$artisan_id, $name, $description, $price, $image_url]);
+}
+
+function getArtisanByUserId($user_id) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT * FROM artisans WHERE user_id = ?");
+    $stmt->execute([$user_id]);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 ?>

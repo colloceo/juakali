@@ -25,13 +25,7 @@ $artisans = getAllArtisans();
         .btn-custom { background-color: #FFA500; color: #fff; border: none; padding: 0.75rem; font-size: 1rem; width: 100%; min-height: 48px; }
         .section-title { font-family: 'Lora', serif; color: #FF5733; text-align: center; margin: 2rem 0; }
         footer { background-color: #FF5733; color: #FFD700; padding: 1rem; text-align: center; }
-        @media (max-width: 768px) {
-            .hero-section { padding: 3rem 0; }
-            .hero-section h1 { font-size: 2rem; }
-            .product-grid, .artisan-grid { grid-template-columns: 1fr; gap: 1rem; padding: 1rem; }
-            .navbar-brand, .nav-link { font-size: 0.9rem; }
-            .btn-custom { font-size: 0.9rem; padding: 0.5rem; }
-        }
+       
     </style>
 </head>
 <body>
@@ -42,11 +36,12 @@ $artisans = getAllArtisans();
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="#products">Products</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#artisans">Artisans</a></li>
+                 <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="index.php">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="about.php">About</a></li>
+                    <li class="nav-item"><a class="nav-link" href="contact.php">Contact</a></li>
                     <li class="nav-item"><a class="nav-link" href="login.php">Login</a></li>
-                    <li class="nav-item"><a class="nav-link" href="signup.php">Sign Up</a></li>
+                    <!-- <li class="nav-item"><a class="nav-link" href="signup.html">Sign Up</a></li> -->
                 </ul>
             </div>
         </div>

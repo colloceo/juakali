@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <button type="submit" class="btn btn-custom">Login</button>
         </form>
         <button class="btn social-btn">Login with Google</button>
-        <button class="btn social-btn">Login with Facebook</button>
+        <!-- <button class="btn social-btn">Login with Facebook</button> -->
         <p class="text-center mt-3">Don't have an account? <a href="signup.php">Sign Up</a></p>
     </div>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
