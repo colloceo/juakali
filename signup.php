@@ -1,0 +1,62 @@
+<?php
+require_once 'functions.php';
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $name = $_POST['name'];
+    $email = $_POST['email'];
+    $password = $_POST['password'];
+    $phone = $_POST['phone'] ?? null;
+    if (registerUser($name, $email, $password, $phone)) {
+        header("Location: login.php");
+        exit();
+    } else {
+        $error = "Registration failed. Email may already exist.";
+    }
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JuaKali - Sign Up</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;700&family=Lora:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Ubuntu', sans-serif; background-color: #f8f1e9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .signup-container { background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        .signup-container h2 { font-family: 'Lora', serif; color: #FF5733; text-align: center; }
+        .btn-custom { background-color: #FFA500; color: #fff; border: none; width: 100%; padding: 0.75rem; font-size: 1rem; min-height: 48px; }
+        .error { color: red; text-align: center; }
+        @media (max-width: 768px) { .signup-container { margin: 1rem; padding: 1rem; } .btn-custom { font-size: 0.9rem; padding: 0.5rem; } }
+    </style>
+</head>
+<body>
+    <div class="signup-container">
+        <h2>Sign Up for JuaKali</h2>
+        <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
+        <form method="POST">
+            <div class="mb-3">
+                <label for="name" class="form-label">Full Name</label>
+                <input type="text" class="form-control" id="name" name="name" required>
+            </div>
+            <div class="mb-3">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" class="form-control" id="email" name="email" required>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+            </div>
+            <div class="mb-3">
+                <label for="phone" class="form-label">Phone (Optional)</label>
+                <input type="tel" class="form-control" id="phone" name="phone">
+            </div>
+            <button type="submit" class="btn btn-custom">Sign Up</button>
+        </form>
+        <p class="text-center mt-3">Already have an account? <a href="login.php">Login</a></p>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
