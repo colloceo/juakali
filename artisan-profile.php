@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;700&family=Lora:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Ubuntu', sans-serif; background-color: #f8f1e9; }
-        .navbar { background-color: #FF5733; padding: 1rem; position: fixed; width: 100%;}
+        .navbar { background-color: #FF5733; padding: 1rem; position: fixed;}
         .navbar-brand, .nav-link { color: #FFD700 !important; font-weight: bold; }
         .profile-container { padding: 2rem; }
         .profile-header { text-align: center; margin-bottom: 2rem; }

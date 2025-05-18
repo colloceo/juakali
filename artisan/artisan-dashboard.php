@@ -15,9 +15,22 @@ if (!$artisan) {
 }
 
 $products = getArtisanProducts($artisan['id']);
-$orders = $pdo->prepare("SELECT o.*, oi.quantity, p.name FROM orders o JOIN order_items oi ON o.id = oi.order_id JOIN products p ON oi.product_id = p.id WHERE p.artisan_id = ?");
-$orders->execute([$artisan['id']]);
-$orders = $orders->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch orders with order date
+$ordersStmt = $pdo->prepare("
+    SELECT
+        o.id AS order_id,
+        o.created_at AS order_date,
+        oi.quantity,
+        p.name AS product_name
+    FROM orders o
+    JOIN order_items oi ON o.id = oi.order_id
+    JOIN products p ON oi.product_id = p.id
+    WHERE p.artisan_id = ?
+    ORDER BY o.created_at DESC
+");
+$ordersStmt->execute([$artisan['id']]);
+$orders = $ordersStmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -37,6 +50,7 @@ $orders = $orders->fetchAll(PDO::FETCH_ASSOC);
         .btn-custom { background-color: #FFA500; color: #fff; border: none; padding: 0.75rem; font-size: 1rem; min-height: 48px; }
         .section-title { font-family: 'Lora', serif; color: #FF5733; text-align: center; }
         footer { background-color: #FF5733; color: #FFD700; padding: 1rem; text-align: center; }
+        .no-data { text-align: center; color: #777; margin-top: 1rem; }
         @media (max-width: 768px) { .dashboard-container { padding: 1rem; } .dashboard-table th, .dashboard-table td { font-size: 0.8rem; } .navbar-brand, .nav-link { font-size: 0.9rem; } .btn-custom { font-size: 0.9rem; padding: 0.5rem; } }
     </style>
 </head>
@@ -49,53 +63,65 @@ $orders = $orders->fetchAll(PDO::FETCH_ASSOC);
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                  <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="artisan-dashboard.php">Dashboard</a></li>
-                    <li class="nav-item"><a class="nav-link" href="artisan-product-upload.php">Upload Product</a></li>
-                    <li class="nav-item"><a class="nav-link" href="artisan-options.php">Profile</a></li>
-                    <li class="nav-item"><a class="nav-link" href="logout.php">Logout</a></li>
-                </ul>
+                     <li class="nav-item"><a class="nav-link" href="artisan-dashboard.php">Dashboard</a></li>
+                     <li class="nav-item"><a class="nav-link" href="artisan-product-upload.php">Upload Product</a></li>
+                     <li class="nav-item"><a class="nav-link" href="artisan-options.php">Profile</a></li>
+                     <li class="nav-item"><a class="nav-link" href="logout.php">Logout</a></li>
+                 </ul>
             </div>
         </div>
     </nav>
 
     <div class="dashboard-container">
         <h2 class="section-title"><?php echo htmlspecialchars($artisan['name']); ?>'s Dashboard</h2>
+
         <h5>Approved Products</h5>
-        <table class="dashboard-table">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Price</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($products as $product): ?>
+        <?php if (!empty($products)): ?>
+            <table class="dashboard-table">
+                <thead>
                     <tr>
-                        <td><?php echo htmlspecialchars($product['name']); ?></td>
-                        <td>KES <?php echo number_format($product['price'], 2); ?></td>
+                        <th>Name</th>
+                        <th>Price</th>
                     </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    <?php foreach ($products as $product): ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($product['name']); ?></td>
+                            <td>KES <?php echo number_format($product['price'], 2); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php else: ?>
+            <p class="no-data">No approved products yet.</p>
+        <?php endif; ?>
+
         <h5>Orders</h5>
-        <table class="dashboard-table">
-            <thead>
-                <tr>
-                    <th>Order ID</th>
-                    <th>Product</th>
-                    <th>Quantity</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($orders as $order): ?>
+        <?php if (!empty($orders)): ?>
+            <table class="dashboard-table">
+                <thead>
                     <tr>
-                        <td>#<?php echo $order['id']; ?></td>
-                        <td><?php echo htmlspecialchars($order['name']); ?></td>
-                        <td><?php echo $order['quantity']; ?></td>
+                        <th>Order ID</th>
+                        <th>Product</th>
+                        <th>Quantity</th>
+                        <th>Order Date</th>
                     </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    <?php foreach ($orders as $order): ?>
+                        <tr>
+                            <td>#<?php echo $order['order_id']; ?></td>
+                            <td><?php echo htmlspecialchars($order['product_name']); ?></td>
+                            <td><?php echo $order['quantity']; ?></td>
+                            <td><?php echo date('Y-m-d H:i:s', strtotime($order['order_date'])); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php else: ?>
+            <p class="no-data">No orders received yet.</p>
+        <?php endif; ?>
     </div>
 
     <footer>
