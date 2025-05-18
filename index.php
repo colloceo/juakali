@@ -15,7 +15,7 @@ $artisans = getAllArtisans();
     <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;700&family=Lora:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Ubuntu', sans-serif; background-color: #f8f1e9; }
-        .navbar { background-color: #FF5733; padding: 1rem; }
+        .navbar { background-color: #FF5733; padding: 1rem; position: fixed; width: 100%;}
         .navbar-brand, .nav-link { color: #FFD700 !important; font-weight: bold; }
         .hero-section { background: url('https://via.placeholder.com/1200x400?text=Kenyan+Craftsmanship') no-repeat center; background-size: cover; color: #fff; padding: 5rem 0; text-align: center; }
         .hero-section h1 { font-family: 'Lora', serif; font-size: 3rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
@@ -77,8 +77,20 @@ $artisans = getAllArtisans();
         <?php endforeach; ?>
     </div>
 
-    <footer>
-        <p>&copy; 2025 JuaKali. All rights reserved.</p>
+     <footer>
+        <div class="container">
+            <p>© <?php echo date("Y"); ?> JuaKali. All rights reserved.</p>
+            <div class="mt-2">
+                <a href="terms.php">Terms</a> |
+                <a href="privacy.php">Privacy</a> |
+                <a href="contact.php">Contact</a>
+            </div>
+            <div class="social-icons mt-3">
+                <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+            </div>
+        </div>
     </footer>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>

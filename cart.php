@@ -31,13 +31,14 @@ $total = array_sum(array_map(fn($item) => $item['price'] * $item['quantity'], $c
     <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;700&family=Lora:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Ubuntu', sans-serif; background-color: #f8f1e9; }
-        .navbar { background-color: #FF5733; padding: 1rem; }
+        .navbar { background-color: #FF5733; padding: 1rem; position:}
         .navbar-brand, .nav-link { color: #FFD700 !important; font-weight: bold; }
         .cart-table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
         .cart-table th, .cart-table td { border: 1px solid #ddd; padding: 0.5rem; text-align: center; }
         .cart-table img { width: 100px; height: 100px; object-fit: contain; }
         .btn-custom { background-color: #FFA500; color: #fff; border: none; padding: 0.75rem; font-size: 1rem; min-height: 48px; }
         .btn-danger { padding: 0.75rem; font-size: 1rem; min-height: 48px; }
+        footer { background-color: #FF5733; color: #FFD700; padding: 1rem; text-align: center; }
         @media (max-width: 768px) { .cart-table img { width: 50px; height: 50px; } .cart-table th, .cart-table td { font-size: 0.8rem; } .navbar-brand, .nav-link { font-size: 0.9rem; } .btn-custom, .btn-danger { font-size: 0.9rem; padding: 0.5rem; } }
     </style>
 </head>
@@ -49,11 +50,24 @@ $total = array_sum(array_map(fn($item) => $item['price'] * $item['quantity'], $c
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="index-after-login.php#products">Products</a></li>
-                    <li class="nav-item"><a class="nav-link" href="index-after-login.php#artisans">Artisans</a></li>
+               <ul class="navbar-nav ms-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="categoryDropdown" data-bs-toggle="dropdown">Products</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#">Decor</a></li>
+                            <li><a class="dropdown-item" href="#">Textiles</a></li>
+                            <li><a class="dropdown-item" href="#">Food</a></li>
+                            <li><a class="dropdown-item" href="#">Personal Care</a></li>
+                        </ul>
+                    <li class="nav-item"><a class="nav-link" href="#artisans">Artisans</a></li>
                     <li class="nav-item"><a class="nav-link" href="cart.php">Cart</a></li>
-                </ul>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="accountDropdown" data-bs-toggle="dropdown">Account</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="account.php">My Account</a></li>
+                            <li><a class="dropdown-item" href="wishlist.php">Wishlist</a></li>
+                            <li><a class="dropdown-item" href="logout.php">Logout</a></li>
+                        </ul>
             </div>
         </div>
     </nav>
@@ -96,6 +110,23 @@ $total = array_sum(array_map(fn($item) => $item['price'] * $item['quantity'], $c
             </div>
         <?php endif; ?>
     </div>
+
+         <footer>
+        <div class="container">
+            <p>© <?php echo date("Y"); ?> JuaKali. All rights reserved.</p>
+            <div class="mt-2">
+                <a href="terms.php">Terms</a> |
+                <a href="privacy.php">Privacy</a> |
+                <a href="contact.php">Contact</a>
+            </div>
+            <div class="social-icons mt-3">
+                <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+            </div>
+        </div>
+    </footer>
+
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>

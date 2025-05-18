@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['product_id'])) {
     <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;700&family=Lora:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Ubuntu', sans-serif; background-color: #f8f1e9; }
-        .navbar { background-color: #FF5733; padding: 1rem; }
+        .navbar { background-color: #FF5733; padding: 1rem; position: fixed; width: 100%;}
         .navbar-brand, .nav-link { color: #FFD700 !important; font-weight: bold; }
         .hero-section { background: url('https://via.placeholder.com/1200x400?text=Welcome+Back') no-repeat center; background-size: cover; color: #fff; padding: 5rem 0; text-align: center; }
         .hero-section h1 { font-family: 'Lora', serif; font-size: 3rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
@@ -37,6 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['product_id'])) {
         .btn-custom { background-color: #FFA500; color: #fff; border: none; padding: 0.75rem; font-size: 1rem; width: 100%; min-height: 48px; }
         .section-title { font-family: 'Lora', serif; color: #FF5733; text-align: center; margin: 2rem 0; }
         footer { background-color: #FF5733; color: #FFD700; padding: 1rem; text-align: center; }
+        
     </style>
 </head>
 <body>
@@ -48,12 +49,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['product_id'])) {
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="#products">Products</a></li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="categoryDropdown" data-bs-toggle="dropdown">Products</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#">Decor</a></li>
+                            <li><a class="dropdown-item" href="#">Textiles</a></li>
+                            <li><a class="dropdown-item" href="#">Food</a></li>
+                            <li><a class="dropdown-item" href="#">Personal Care</a></li>
+                        </ul>
                     <li class="nav-item"><a class="nav-link" href="#artisans">Artisans</a></li>
                     <li class="nav-item"><a class="nav-link" href="cart.php">Cart</a></li>
-                    <li class="nav-item"><a class="nav-link" href="account.php">Account</a></li>
-                    <li class="nav-item"><a class="nav-link" href="logout.php">Logout</a></li>
-                </ul>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="accountDropdown" data-bs-toggle="dropdown">Account</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="account.php">My Account</a></li>
+                            <li><a class="dropdown-item" href="wishlist.php">Wishlist</a></li>
+                            <li><a class="dropdown-item" href="logout.php">Logout</a></li>
+                        </ul>
             </div>
         </div>
     </nav>
@@ -90,9 +102,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['product_id'])) {
             </div>
         <?php endforeach; ?>
     </div>
-
-    <footer>
-        <p>&copy; 2025 JuaKali. All rights reserved.</p>
+ <footer>
+        <div class="container">
+            <p>© <?php echo date("Y"); ?> JuaKali. All rights reserved.</p>
+            <div class="mt-2">
+                <a href="terms.php">Terms</a> |
+                <a href="privacy.php">Privacy</a> |
+                <a href="contact.php">Contact</a>
+            </div>
+            <div class="social-icons mt-3">
+                <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+            </div>
+        </div>
     </footer>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>

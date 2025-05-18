@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item"><a class="nav-link" href="artisan-dashboard.php">Dashboard</a></li>
                     <li class="nav-item"><a class="nav-link" href="artisan-product-upload.php">Upload Product</a></li>
-                    <li class="nav-item"><a class="nav-link" href="artisan-options.php">Options</a></li>
+                    <li class="nav-item"><a class="nav-link" href="artisan-options.php">Profile</a></li>
                     <li class="nav-item"><a class="nav-link" href="logout.php">Logout</a></li>
                 </ul>
             </div>

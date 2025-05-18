@@ -46,6 +46,23 @@
         <p>Sorry, the page you're looking for doesn't exist.</p>
         <a href="index.html" class="btn btn-custom">Return to Homepage</a>
     </div>
+
+     <footer>
+        <div class="container">
+            <p>© <?php echo date("Y"); ?> JuaKali. All rights reserved.</p>
+            <div class="mt-2">
+                <a href="terms.php">Terms</a> |
+                <a href="privacy.php">Privacy</a> |
+                <a href="contact.php">Contact</a>
+            </div>
+            <div class="social-icons mt-3">
+                <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+            </div>
+        </div>
+    </footer>
+    
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

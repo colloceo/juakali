@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;700&family=Lora:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Ubuntu', sans-serif; background-color: #f8f1e9; }
-        .navbar { background-color: #FF5733; padding: 1rem; }
+        .navbar { background-color: #FF5733; padding: 1rem; position: fixed; width: 100%;}
         .navbar-brand, .nav-link { color: #FFD700 !important; font-weight: bold; }
         .profile-container { padding: 2rem; }
         .profile-header { text-align: center; margin-bottom: 2rem; }
@@ -78,18 +78,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="index.php">Home</a></li>
-                    <li class="nav-item"><a class="nav-link" href="about.php">About</a></li>
-                    <li class="nav-item"><a class="nav-link" href="contact.html">Contact</a></li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="categoryDropdown" data-bs-toggle="dropdown">Products</a>
+                        <ul class="dropdown-menu">
+                             <li class="nav-item"><a class="nav-link" href="index.php">Home</a></li>
+                             <li class="nav-item"><a class="nav-link" href="about.php">About</a></li>
+                             <li class="nav-item"><a class="nav-link" href="contact.html">Contact</a></li>
                     <?php if (isset($_SESSION['user_id'])): ?>
-                        <li class="nav-item"><a class="nav-link" href="cart.php">Cart</a></li>
-                        <li class="nav-item"><a class="nav-link" href="account.php">Account</a></li>
-                        <li class="nav-item"><a class="nav-link" href="logout.php">Logout</a></li>
-                    <?php else: ?>
+                            <li><a class="dropdown-item" href="#">Decor</a></li>
+                            <li><a class="dropdown-item" href="#">Textiles</a></li>
+                            <li><a class="dropdown-item" href="#">Food</a></li>
+                            <li><a class="dropdown-item" href="#">Personal Care</a></li>
+                        </ul>
+                    <li class="nav-item"><a class="nav-link" href="#artisans">Artisans</a></li>
+                    <li class="nav-item"><a class="nav-link" href="cart.php">Cart</a></li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="accountDropdown" data-bs-toggle="dropdown">Account</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="account.php">My Account</a></li>
+                            <li><a class="dropdown-item" href="wishlist.php">Wishlist</a></li>
+                            <li><a class="dropdown-item" href="logout.php">Logout</a></li>
+                            <?php else: ?>
                         <li class="nav-item"><a class="nav-link" href="login.php">Login</a></li>
                         <li class="nav-item"><a class="nav-link" href="signup.php">Sign Up</a></li>
                     <?php endif; ?>
-                </ul>
+                        </ul>
             </div>
         </div>
     </nav>
