@@ -62,7 +62,7 @@ require_once 'functions.php';
 <body>
     <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
         <div class="container">
-            <a class="navbar-brand" href="index.php">JuaKali Hub</a>
+            <a class="navbar-brand" href="index.php">JuaKali</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -71,25 +71,9 @@ require_once 'functions.php';
                     <li class="nav-item"><a class="nav-link active" aria-current="page" href="index.php">Home</a></li>
                     <li class="nav-item"><a class="nav-link" href="about.php">About Us</a></li>
                     <li class="nav-item"><a class="nav-link" href="products.php">Products</a></li>
-                    <li class="nav-item"><a class="nav-link" href="artisans.php">Artisans</a></li>
                     <li class="nav-item"><a class="nav-link" href="contact.html">Contact</a></li>
-                    <?php if (isset($_SESSION['user_id'])): ?>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                Artisan Area
-                            </a>
-                            <ul class="dropdown-menu" aria-labelledby="userDropdown">
-                                <li><a class="dropdown-item" href="artisan-dashboard.php">Dashboard</a></li>
-                                <li><a class="dropdown-item" href="artisan-product-upload.php">Upload Product</a></li>
-                                <li><a class="dropdown-item" href="artisan-options.php">Profile Settings</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="logout.php">Logout</a></li>
-                            </ul>
-                        </li>
-                    <?php else: ?>
-                        <li class="nav-item"><a class="nav-link" href="artisan-login.php">Artisan Login</a></li>
-                        <li class="nav-item"><a class="nav-link" href="artisan-signup.php">Become an Artisan</a></li>
-                    <?php endif; ?>
+                        <li class="nav-item"><a class="nav-link" href="login.php">Login</a></li>
+                        <li class="nav-item"><a class="nav-link" href="artisan/artisan-signup.php">Become an Artisan</a></li>
                 </ul>
             </div>
         </div>
@@ -200,7 +184,7 @@ require_once 'functions.php';
     </section>
 
     <section class="benefits-section container">
-        <h2 class="section-title">Why Choose JuaKali Hub?</h2>
+        <h2 class="section-title">Why Choose JuaKali?</h2>
         <p class="lead text-center mb-4">We offer a platform that empowers artisans and connects you with truly special, handcrafted goods.</p>
         <div class="row justify-content-center">
             <div class="col-lg-8">
