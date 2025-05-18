@@ -161,4 +161,97 @@ function getArtisanByUserId($user_id) {
     $stmt->execute([$user_id]);
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
+
+// Assuming you have your database connection established here (e.g., $pdo)
+
+function getFeaturedArtisansDetailed(int $limit = 3): array
+{
+    global $pdo;
+    $stmt = $pdo->prepare("
+        SELECT
+            u.id,
+            u.name,
+            a.bio,
+            a.image_url AS profile_image_url,
+            COUNT(p.id) AS product_count -- Example: Count the number of products each artisan has
+        FROM users u
+        JOIN artisans a ON u.id = a.user_id
+        LEFT JOIN products p ON a.user_id = p.artisan_id AND p.approval_status = 'approved'
+        WHERE a.is_featured = 1
+        GROUP BY u.id, u.name, a.bio, a.image_url
+        ORDER BY u.name
+        LIMIT :limit
+    ");
+    $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function getPopularProducts(int $limit = 8): array
+{
+    global $pdo;
+    // This is a basic example. You might determine popularity based on sales, views, or other metrics.
+    $stmt = $pdo->prepare("
+        SELECT
+            p.id,
+            p.name,
+            p.description,
+            p.price,
+            p.image_url
+        FROM products p
+        WHERE p.approval_status = 'approved'
+        ORDER BY p.created_at DESC -- Example: Order by most recent
+        LIMIT :limit
+    ");
+    $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function getProductCategories(int $limit = 6): array
+{
+    global $pdo;
+    $stmt = $pdo->prepare("
+        SELECT id, name, image_url
+        FROM categories
+        LIMIT :limit
+    ");
+    $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function getRecentArtisanSpotlights(int $limit = 3): array
+{
+    global $pdo;
+    $stmt = $pdo->prepare("
+        SELECT
+            s.id,
+            s.title,
+            s.content,
+            s.created_at,
+            u.name AS author_name -- Assuming you want the user's name as the author
+        FROM spotlights s
+        LEFT JOIN users u ON s.author_id = u.id -- Assuming a foreign key 'author_id' in your spotlights table
+        ORDER BY s.created_at DESC
+        LIMIT :limit
+    ");
+    $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function getPlatformBenefits(): array
+{
+    // You can either fetch these from a database table or define them directly in the code.
+    return [
+        ['icon' => 'bi bi-heart-fill', 'text' => 'Support Local Artisans: Directly contribute to the livelihoods and growth of talented Kenyan craftspeople.'],
+        ['icon' => 'bi bi-unique-fill', 'text' => 'Discover Unique Creations: Find one-of-a-kind items you won\'t find in mass-produced retail.'],
+        ['icon' => 'bi bi-hand-heart-fill', 'text' => 'Ethical and Sustainable: Connect with artisans who prioritize sustainable practices and ethical sourcing.'],
+        ['icon' => 'bi bi-globe', 'text' => 'Kenyan Craftsmanship, Global Reach: Bringing the best of Kenyan artistry to a worldwide audience.'],
+        ['icon' => 'bi bi-people-fill', 'text' => 'Connect with Creators: Build relationships with the artisans behind your cherished items.'],
+    ];
+}
+
+// ... other functions in your functions.php ...
 ?>
