@@ -161,4 +161,9 @@ function getArtisanByUserId($user_id) {
     $stmt->execute([$user_id]);
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
+
+function featuredArtisan($artisan_id, $name){
+    global $pdo;
+    
+}
 ?>

@@ -12,10 +12,20 @@ $products = $pdo->query("SELECT * FROM products WHERE status = 'Approved' LIMIT 
 $artisans = getAllArtisans();
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['product_id'])) {
-    addToCart($user_id, $_POST['product_id'], 1);
-    header("Location: cart.php");
-    exit();
+    $product_id = (int)$_POST['product_id'];
+    $stmt = $pdo->prepare("SELECT id FROM products WHERE id = ? AND status = 'Approved'");
+    $stmt->execute([$product_id]);
+    if ($stmt->fetchColumn() && addToCart($user_id, $product_id, 1)) {
+        header("Location: index-after-login.php?added=true");
+        exit();
+    } else {
+        header("Location: index-after-login.php?error=failed");
+        exit();
+    }
 }
+
+$success = isset($_GET['added']) && $_GET['added'] === 'true' ? "Product added to cart successfully!" : '';
+$error = isset($_GET['error']) && $_GET['error'] === 'failed' ? "Failed to add product to cart. Please try again." : '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -27,17 +37,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['product_id'])) {
     <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;700&family=Lora:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Ubuntu', sans-serif; background-color: #f8f1e9; }
-        .navbar { background-color: #FF5733; padding: 1rem; position: fixed; width: 100%;}
+        .navbar { background-color: #FF5733; padding: 1rem; position: fixed; width: 100%; z-index: 1000; }
         .navbar-brand, .nav-link { color: #FFD700 !important; font-weight: bold; }
-        .hero-section { background: url('https://via.placeholder.com/1200x400?text=Welcome+Back') no-repeat center; background-size: cover; color: #fff; padding: 5rem 0; text-align: center; }
+        .hero-section { background: url('https://via.placeholder.com/1200x400?text=Welcome+Back') no-repeat center; background-size: cover; color: #fff; padding: 5rem 0; text-align: center; margin-top: 60px; }
         .hero-section h1 { font-family: 'Lora', serif; font-size: 3rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
         .product-grid, .artisan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; padding: 2rem; }
         .product-card, .artisan-card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 1rem; text-align: center; }
         .product-card img, .artisan-card img { width: 100%; height: 200px; object-fit: contain; }
         .btn-custom { background-color: #FFA500; color: #fff; border: none; padding: 0.75rem; font-size: 1rem; width: 100%; min-height: 48px; }
         .section-title { font-family: 'Lora', serif; color: #FF5733; text-align: center; margin: 2rem 0; }
+        .alert { margin: 1rem 0; }
         footer { background-color: #FF5733; color: #FFD700; padding: 1rem; text-align: center; }
-        
     </style>
 </head>
 <body>
@@ -57,6 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['product_id'])) {
                             <li><a class="dropdown-item" href="#">Food</a></li>
                             <li><a class="dropdown-item" href="#">Personal Care</a></li>
                         </ul>
+                    </li>
                     <li class="nav-item"><a class="nav-link" href="#artisans">Artisans</a></li>
                     <li class="nav-item"><a class="nav-link" href="cart.php">Cart</a></li>
                     <li class="nav-item dropdown">
@@ -66,22 +77,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['product_id'])) {
                             <li><a class="dropdown-item" href="wishlist.php">Wishlist</a></li>
                             <li><a class="dropdown-item" href="logout.php">Logout</a></li>
                         </ul>
+                    </li>
+                </ul>
             </div>
         </div>
     </nav>
 
     <div class="hero-section">
-        <h1>Welcome Back, <?php echo $_SESSION['name']; ?>!</h1>
+        <h1>Welcome Back, <?php echo htmlspecialchars($_SESSION['name']); ?>!</h1>
         <p>Explore handcrafted products by talented Kenyan artisans.</p>
         <a href="#products" class="btn btn-custom">Shop Now</a>
     </div>
+
+    <?php if ($success): ?>
+        <div class="alert alert-success text-center" role="alert"><?php echo $success; ?></div>
+    <?php endif; ?>
+    <?php if ($error): ?>
+        <div class="alert alert-danger text-center" role="alert"><?php echo $error; ?></div>
+    <?php endif; ?>
 
     <h2 class="section-title" id="products">Featured Products</h2>
     <div class="product-grid">
         <?php foreach ($products as $product): ?>
             <div class="product-card">
-                <img src="https://via.placeholder.com/250x200?text=<?php echo urlencode($product['name']); ?>" alt="<?php echo $product['name']; ?>">
-                <h5><?php echo $product['name']; ?></h5>
+                <img src="https://via.placeholder.com/250x200?text=<?php echo urlencode($product['name']); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>">
+                <h5><?php echo htmlspecialchars($product['name']); ?></h5>
                 <p>KES <?php echo number_format($product['price'], 2); ?></p>
                 <form method="POST">
                     <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
@@ -95,14 +115,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['product_id'])) {
     <div class="artisan-grid">
         <?php foreach ($artisans as $artisan): ?>
             <div class="artisan-card">
-                <img src="<?php echo $artisan['image_url'] ?? 'https://via.placeholder.com/250x200?text=Artisan+Photo'; ?>" alt="<?php echo $artisan['name']; ?>">
-                <h5><?php echo $artisan['name']; ?></h5>
+                <img src="<?php echo $artisan['image_url'] ?? 'https://via.placeholder.com/250x200?text=Artisan+Photo'; ?>" alt="<?php echo htmlspecialchars($artisan['name']); ?>">
+                <h5><?php echo htmlspecialchars($artisan['name']); ?></h5>
                 <p><?php echo $artisan['location'] ?? 'Location not specified'; ?></p>
                 <a href="artisan-profile.php?id=<?php echo $artisan['id']; ?>" class="btn btn-custom">View Profile</a>
             </div>
         <?php endforeach; ?>
     </div>
- <footer>
+    <footer>
         <div class="container">
             <p>© <?php echo date("Y"); ?> JuaKali. All rights reserved.</p>
             <div class="mt-2">
@@ -120,5 +140,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['product_id'])) {
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://kit.fontawesome.com/a076d05399.js"></script>
 </body>
 </html>
