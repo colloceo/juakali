@@ -129,6 +129,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </div>
             <div class="col-md-6">
                 <form method="POST" id="checkoutForm">
+
+                    <h5>Delivery Option</h5>
+                    <select class="form-select mb-3" name="delivery_option" required>
+                        <option value="">Select "Mtaani" Pick-up Point</option>
+                        <option value="Nairobi - Westlands Shop">Nairobi - Westlands Shop</option>
+                        <option value="Nairobi - CBD Shop">Nairobi - CBD Shop</option>
+                        <option value="Kisumu - CBD Shop">Kisumu -CBD Shop</option>
+                        <option value="MOmbasa - CBD Shop">Mombasa - CBD Shop</option>
+                    </select>
+                    
                     <h5>Payment Method</h5>
                     <select class="form-select mb-3" name="payment" id="paymentMethod" required>
                         <option value="">Select Payment Method</option>
@@ -140,14 +150,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <div id="mpesaButton" style="display: none;">
                         <button type="button" class="btn btn-custom w-100 mb-3" data-bs-toggle="modal" data-bs-target="#payWithMpesaModal">Pay with M-Pesa</button>
                     </div>
-
-                    <h5>Delivery Option</h5>
-                    <select class="form-select mb-3" name="delivery_option" required>
-                        <option value="">Select "Mtaani" Pick-up Point</option>
-                        <option value="Nairobi - Westlands Shop">Nairobi - Westlands Shop</option>
-                        <option value="Nairobi - CBD Shop">Nairobi - CBD Shop</option>
-                    </select>
-
                     <button type="submit" class="btn btn-custom w-100" id="confirmButton">Confirm Order</button>
                 </form>
 
