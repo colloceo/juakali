@@ -1,6 +1,7 @@
 <?php
 require_once 'config.php';
 
+// Login a user by email and password
 function loginUser($email, $password) {
     global $pdo;
     $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
@@ -15,6 +16,7 @@ function loginUser($email, $password) {
     return false;
 }
 
+// Register a new user
 function registerUser($name, $email, $password, $phone = null) {
     global $pdo;
     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
@@ -22,12 +24,14 @@ function registerUser($name, $email, $password, $phone = null) {
     return $stmt->execute([$name, $email, $hashed_password, $phone]);
 }
 
+// Add a product to the cart
 function addToCart($user_id, $product_id, $quantity) {
     global $pdo;
     $stmt = $pdo->prepare("INSERT INTO cart (user_id, product_id, quantity) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE quantity = quantity + ?");
     return $stmt->execute([$user_id, $product_id, $quantity, $quantity]);
 }
 
+// Fetch cart items for a user
 function getCartItems($user_id) {
     global $pdo;
     $stmt = $pdo->prepare("SELECT c.*, p.name, p.price FROM cart c JOIN products p ON c.product_id = p.id WHERE c.user_id = ?");
@@ -35,12 +39,14 @@ function getCartItems($user_id) {
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+// Remove a product from the cart
 function removeFromCart($user_id, $product_id) {
     global $pdo;
     $stmt = $pdo->prepare("DELETE FROM cart WHERE user_id = ? AND product_id = ?");
     return $stmt->execute([$user_id, $product_id]);
 }
 
+// Create a new order
 function createOrder($user_id, $total, $payment_method, $delivery_option) {
     global $pdo;
     $stmt = $pdo->prepare("INSERT INTO orders (user_id, total, payment_method, delivery_option) VALUES (?, ?, ?, ?)");
@@ -48,12 +54,14 @@ function createOrder($user_id, $total, $payment_method, $delivery_option) {
     return $pdo->lastInsertId();
 }
 
+// Add an item to an order
 function addOrderItem($order_id, $product_id, $quantity, $price) {
     global $pdo;
     $stmt = $pdo->prepare("INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)");
     return $stmt->execute([$order_id, $product_id, $quantity, $price]);
 }
 
+// Fetch all orders for a user
 function getUserOrders($user_id) {
     global $pdo;
     $stmt = $pdo->prepare("SELECT o.*, oi.product_id, oi.quantity, p.name FROM orders o JOIN order_items oi ON o.id = oi.order_id JOIN products p ON oi.product_id = p.id WHERE o.user_id = ?");
@@ -61,23 +69,27 @@ function getUserOrders($user_id) {
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+// Approve a product
 function approveProduct($product_id) {
     global $pdo;
     $stmt = $pdo->prepare("UPDATE products SET status = 'Approved' WHERE id = ?");
     return $stmt->execute([$product_id]);
 }
 
+// Create a new artisan
 function createArtisan($name, $bio, $location, $image_url = null) {
     global $pdo;
     $stmt = $pdo->prepare("INSERT INTO artisans (name, bio, location, image_url) VALUES (?, ?, ?, ?)");
     return $stmt->execute([$name, $bio, $location, $image_url]);
 }
 
+// Fetch all artisans
 function getAllArtisans() {
     global $pdo;
     return $pdo->query("SELECT * FROM artisans")->fetchAll(PDO::FETCH_ASSOC);
 }
 
+// Fetch an artisan by ID
 function getArtisanById($id) {
     global $pdo;
     $stmt = $pdo->prepare("SELECT * FROM artisans WHERE id = ?");
@@ -85,18 +97,21 @@ function getArtisanById($id) {
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
+// Update an artisan's details
 function updateArtisan($id, $name, $bio, $location, $image_url = null) {
     global $pdo;
     $stmt = $pdo->prepare("UPDATE artisans SET name = ?, bio = ?, location = ?, image_url = ? WHERE id = ?");
     return $stmt->execute([$name, $bio, $location, $image_url, $id]);
 }
 
+// Delete an artisan
 function deleteArtisan($id) {
     global $pdo;
     $stmt = $pdo->prepare("DELETE FROM artisans WHERE id = ?");
     return $stmt->execute([$id]);
 }
 
+// Fetch products for an artisan
 function getArtisanProducts($artisan_id) {
     global $pdo;
     $stmt = $pdo->prepare("SELECT * FROM products WHERE artisan_id = ? AND status = 'Approved'");
@@ -104,6 +119,7 @@ function getArtisanProducts($artisan_id) {
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+// Add a rating for an artisan
 function addRating($artisan_id, $user_id, $rating, $comment = null) {
     global $pdo;
     $stmt = $pdo->prepare("INSERT INTO ratings (artisan_id, user_id, rating, comment) VALUES (?, ?, ?, ?)");
@@ -114,6 +130,7 @@ function addRating($artisan_id, $user_id, $rating, $comment = null) {
     return false;
 }
 
+// Fetch ratings for an artisan
 function getRatings($artisan_id) {
     global $pdo;
     $stmt = $pdo->prepare("SELECT r.*, u.name FROM ratings r JOIN users u ON r.user_id = u.id WHERE r.artisan_id = ?");
@@ -121,12 +138,14 @@ function getRatings($artisan_id) {
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+// Update an artisan's average rating
 function updateArtisanRating($artisan_id) {
     global $pdo;
     $stmt = $pdo->prepare("UPDATE artisans a SET average_rating = (SELECT AVG(rating) FROM ratings WHERE artisan_id = ?) WHERE a.id = ?");
     $stmt->execute([$artisan_id, $artisan_id]);
 }
 
+// Upload an image and return the file path
 function uploadImage($file) {
     $root_dir = dirname(__DIR__);
     $target_dir = $root_dir . DIRECTORY_SEPARATOR . "uploads" . DIRECTORY_SEPARATOR;
@@ -149,12 +168,14 @@ function uploadImage($file) {
     return null;
 }
 
+// Create a new product
 function createProduct($artisan_id, $name, $description, $price, $image_url = null) {
     global $pdo;
     $stmt = $pdo->prepare("INSERT INTO products (artisan_id, name, description, price, image_url, status) VALUES (?, ?, ?, ?, ?, 'Pending')");
     return $stmt->execute([$artisan_id, $name, $description, $price, $image_url]);
 }
 
+// Fetch an artisan by user ID
 function getArtisanByUserId($user_id) {
     global $pdo;
     $stmt = $pdo->prepare("SELECT * FROM artisans WHERE user_id = ?");
@@ -162,8 +183,79 @@ function getArtisanByUserId($user_id) {
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
-function featuredArtisan($artisan_id, $name){
+// Fetch featured artisans with detailed info
+function getFeaturedArtisansDetailed(int $limit = 3): array {
     global $pdo;
-    
+    $stmt = $pdo->prepare("
+        SELECT
+            u.id,
+            u.name,
+            a.bio,
+            a.image_url AS profile_image_url,
+            COUNT(p.id) AS product_count
+        FROM users u
+        JOIN artisans a ON u.id = a.user_id
+        LEFT JOIN products p ON a.user_id = p.artisan_id AND p.approval_status = 'approved'
+        WHERE a.is_featured = 1
+        GROUP BY u.id, u.name, a.bio, a.image_url
+        ORDER BY u.name
+        LIMIT :limit
+    ");
+    $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// Fetch popular products
+function getPopularProducts(int $limit = 8): array {
+    global $pdo;
+    $stmt = $pdo->prepare("
+        SELECT
+            p.id,
+            p.name,
+            p.description,
+            p.price,
+            p.image_url
+        FROM products p
+        WHERE p.approval_status = 'approved'
+        ORDER BY p.created_at DESC
+        LIMIT :limit
+    ");
+    $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// Fetch product categories
+function getProductCategories(int $limit = 6): array {
+    global $pdo;
+    $stmt = $pdo->prepare("
+        SELECT id, name, image_url
+        FROM categories
+        LIMIT :limit
+    ");
+    $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// Fetch recent artisan spotlights
+function getRecentArtisanSpotlights(int $limit = 3): array {
+    global $pdo;
+    $stmt = $pdo->prepare("
+        SELECT
+            s.id,
+            s.title,
+            s.content,
+            s.created_at,
+            u.name AS author_name
+        FROM spotlights s
+        LEFT JOIN users u ON s.author_id = u.id
+        ORDER BY s.created_at DESC
+        LIMIT :limit
+    ");
+    $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 ?>
