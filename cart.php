@@ -2,143 +2,197 @@
 session_start();
 require_once 'functions.php';
 
-$user_id = $_SESSION['user_id'] ?? null;
-if (!$user_id) {
-    header("Location: login.php");
+// Ensure user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php?redirect=cart");
     exit();
 }
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
-    if ($_POST['action'] == 'add' && isset($_POST['product_id'])) {
-        addToCart($user_id, $_POST['product_id'], 1);
-    } elseif ($_POST['action'] == 'remove' && isset($_POST['product_id'])) {
-        removeFromCart($user_id, $_POST['product_id']);
+$user_id = $_SESSION['user_id'];
+
+// Fetch cart items
+$stmt = $pdo->prepare("SELECT c.id AS cart_id, c.quantity, p.id AS product_id, p.name, p.price, p.quantity AS stock 
+                       FROM cart c 
+                       JOIN products p ON c.product_id = p.id 
+                       WHERE c.user_id = ?");
+$stmt->execute([$user_id]);
+$cart_items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Calculate total
+$total = 0;
+foreach ($cart_items as $item) {
+    $total += $item['price'] * $item['quantity'];
+}
+
+// Handle quantity update
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_cart'])) {
+    $cart_id = (int)$_POST['cart_id'];
+    $new_quantity = (int)$_POST['quantity'];
+    
+    // Validate quantity
+    $stmt = $pdo->prepare("SELECT p.quantity FROM cart c JOIN products p ON c.product_id = p.id WHERE c.id = ?");
+    $stmt->execute([$cart_id]);
+    $stock = $stmt->fetchColumn();
+    
+    if ($new_quantity > 0 && $new_quantity <= $stock) {
+        $stmt = $pdo->prepare("UPDATE cart SET quantity = ? WHERE id = ? AND user_id = ?");
+        $stmt->execute([$new_quantity, $cart_id, $user_id]);
+        header("Location: cart.php?updated=true");
+        exit();
     }
-    header("Location: cart.php");
-    exit();
 }
 
-$cart_items = getCartItems($user_id);
-$total = array_sum(array_map(fn($item) => $item['price'] * $item['quantity'], $cart_items));
+// Handle remove item
+if (isset($_GET['remove'])) {
+    $cart_id = (int)$_GET['remove'];
+    $stmt = $pdo->prepare("DELETE FROM cart WHERE id = ? AND user_id = ?");
+    $stmt->execute([$cart_id, $user_id]);
+    header("Location: cart.php?removed=true");
+    exit();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JuaKali - Cart</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;700&family=Lora:wght@400;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Cart - JuaKali</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
     <style>
-        body { font-family: 'Ubuntu', sans-serif; background-color: #f8f1e9; }
-        .navbar { background-color: #FF5733; padding: 1rem; position:}
-        .navbar-brand, .nav-link { color: #FFD700 !important; font-weight: bold; }
-        .cart-table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
-        .cart-table th, .cart-table td { border: 1px solid #ddd; padding: 0.5rem; text-align: center; }
-        .cart-table img { width: 100px; height: 100px; object-fit: contain; }
-        .btn-custom { background-color: #FFA500; color: #fff; border: none; padding: 0.75rem; font-size: 1rem; min-height: 48px; }
-        .btn-danger { padding: 0.75rem; font-size: 1rem; min-height: 48px; }
-        footer { background-color: #FF5733; color: #FFD700; padding: 1rem; text-align: center; }
-        @media (max-width: 768px) { .cart-table img { width: 50px; height: 50px; } .cart-table th, .cart-table td { font-size: 0.8rem; } .navbar-brand, .nav-link { font-size: 0.9rem; } .btn-custom, .btn-danger { font-size: 0.9rem; padding: 0.5rem; } }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9fafb;
+            padding-top: 72px; /* header height */
+            padding-bottom: 56px; /* mobile bottom nav height */
+        }
     </style>
 </head>
-<body>
-    <nav class="navbar navbar-expand-lg">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="index-after-login.php">JuaKali</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-               <ul class="navbar-nav ms-auto">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="categoryDropdown" data-bs-toggle="dropdown">Products</a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#">Decor</a></li>
-                            <li><a class="dropdown-item" href="#">Textiles</a></li>
-                            <li><a class="dropdown-item" href="#">Food</a></li>
-                            <li><a class="dropdown-item" href="#">Personal Care</a></li>
-                        </ul>
-                    <li class="nav-item"><a class="nav-link" href="#artisans">Artisans</a></li>
-                    <li class="nav-item"><a class="nav-link" href="cart.php">Cart</a></li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="accountDropdown" data-bs-toggle="dropdown">Account</a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="account.php">My Account</a></li>
-                            <li><a class="dropdown-item" href="wishlist.php">Wishlist</a></li>
-                            <li><a class="dropdown-item" href="logout.php">Logout</a></li>
-                        </ul>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+    <!-- Fixed header -->
+    <header class="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-50">
+        <div class="max-w-7xl mx-auto flex items-center justify-between py-4 px-4 sm:px-6 lg:px-8">
+            <div class="text-lg font-semibold text-gray-900">
+                JuaKali
             </div>
+            <nav class="hidden sm:flex space-x-6 text-sm text-gray-600">
+                <a class="hover:text-indigo-900" href="index-after-login.php">Home</a>
+                <a class="hover:text-indigo-900" href="products.php">Products</a>
+                <a class="text-indigo-900 font-semibold" href="cart.php">Cart</a>
+                <a class="hover:text-indigo-900" href="account.php">Account</a>
+            </nav>
         </div>
-    </nav>
-    <div class="container">
-        <h2 class="text-center my-4" style="font-family: 'Lora', serif; color: #FF5733;">Your Cart</h2>
+    </header>
+
+    <!-- Main content -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-6 sm:pt-24 sm:pb-24">
+        <h1 class="text-2xl font-semibold text-gray-900 mb-6">Your Shopping Cart</h1>
         <?php if (empty($cart_items)): ?>
-            <p>Your cart is empty. <a href="index-after-login.php">Continue Shopping</a></p>
+            <p class="text-gray-600 text-sm">Your cart is empty. <a href="index-after-login.php" class="text-indigo-600 hover:text-indigo-900">Start shopping now!</a></p>
         <?php else: ?>
-            <table class="cart-table">
-                <thead>
-                    <tr>
-                        <th>Product</th>
-                        <th>Price</th>
-                        <th>Quantity</th>
-                        <th>Total</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($cart_items as $item): ?>
+            <div class="bg-white rounded-lg shadow overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
                         <tr>
-                            <td><img src="https://via.placeholder.com/100x100?text=<?php echo urlencode($item['name']); ?>" alt="<?php echo $item['name']; ?>"> <?php echo $item['name']; ?></td>
-                            <td>KES <?php echo number_format($item['price'], 2); ?></td>
-                            <td><input type="number" value="<?php echo $item['quantity']; ?>" min="1" class="form-control quantity" style="width: 60px; margin: 0 auto;" data-product-id="<?php echo $item['product_id']; ?>"></td>
-                            <td>KES <?php echo number_format($item['price'] * $item['quantity'], 2); ?></td>
-                            <td>
-                                <form method="POST" style="margin: 0;">
-                                    <input type="hidden" name="action" value="remove">
-                                    <input type="hidden" name="product_id" value="<?php echo $item['product_id']; ?>">
-                                    <button type="submit" class="btn btn-danger">Remove</button>
-                                </form>
-                            </td>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                            <th scope="col" class="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                            <th scope="col" class="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                            <th scope="col" class="relative px-4 py-3"><span class="sr-only">Remove</span></th>
                         </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-            <div class="text-end">
-                <h5>Total: KES <?php echo number_format($total, 2); ?></h5>
-                <a href="checkout.php" class="btn btn-custom">Proceed to Checkout</a>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <?php foreach ($cart_items as $item): ?>
+                            <tr>
+                                <td class="px-4 py-3 whitespace-nowrap flex items-center space-x-4">
+                                    <img alt="<?php echo htmlspecialchars($item['name']); ?>" class="h-16 w-16 object-contain rounded" src="https://via.placeholder.com/64x64?text=<?php echo urlencode($item['name']); ?>">
+                                    <div class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($item['name']); ?></div>
+                                </td>
+                                <td class="hidden sm:table-cell px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                                    KES <?php echo number_format($item['price'], 2); ?>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    <form method="POST">
+                                        <input type="hidden" name="cart_id" value="<?php echo $item['cart_id']; ?>">
+                                        <input aria-label="Quantity for <?php echo htmlspecialchars($item['name']); ?>" name="quantity" class="w-16 border border-gray-300 rounded text-sm text-center py-1" min="1" max="<?php echo $item['stock']; ?>" type="number" value="<?php echo $item['quantity']; ?>">
+                                        <button type="submit" name="update_cart" class="ml-2 text-indigo-600 hover:text-indigo-900 text-xs">Update</button>
+                                    </form>
+                                </td>
+                                <td class="hidden sm:table-cell px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900">
+                                    KES <?php echo number_format($item['price'] * $item['quantity'], 2); ?>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                                    <a href="cart.php?remove=<?php echo $item['cart_id']; ?>" aria-label="Remove <?php echo htmlspecialchars($item['name']); ?> from cart" class="text-red-600 hover:text-red-900 focus:outline-none">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-6 flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
+                <a href="index-after-login.php" class="w-full sm:w-auto bg-gray-200 text-gray-700 px-6 py-2 rounded text-sm font-semibold hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-1">
+                    Continue Shopping
+                </a>
+                <div class="text-lg font-semibold text-gray-900">
+                    Total: KES <?php echo number_format($total, 2); ?>
+                </div>
+                <a href="checkout.php" class="w-full sm:w-auto bg-indigo-600 text-white px-6 py-2 rounded text-sm font-semibold hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-1">
+                    Proceed to Checkout
+                </a>
             </div>
         <?php endif; ?>
-    </div>
+    </main>
 
-         <footer>
-        <div class="container">
-            <p>© <?php echo date("Y"); ?> JuaKali. All rights reserved.</p>
-            <div class="mt-2">
-                <a href="terms.php">Terms</a> |
-                <a href="privacy.php">Privacy</a> |
-                <a href="contact.php">Contact</a>
+    <!-- Mobile bottom navigation -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 sm:hidden">
+        <ul class="flex justify-between text-xs text-gray-600">
+            <li class="flex flex-col items-center justify-center py-1.5 w-full hover:text-indigo-900">
+                <a href="index-after-login.php" aria-label="Home" class="flex flex-col items-center space-y-0.5 focus:outline-none">
+                    <i class="fas fa-home text-lg"></i>
+                    <span>Home</span>
+                </a>
+            </li>
+            <li class="flex flex-col items-center justify-center py-1.5 w-full hover:text-indigo-900">
+                <a href="products.php" aria-label="Categories" class="flex flex-col items-center space-y-0.5 focus:outline-none">
+                    <i class="fas fa-th-large text-lg"></i>
+                    <span>Categories</span>
+                </a>
+            </li>
+            <li class="flex flex-col items-center justify-center py-1.5 w-full hover:text-indigo-900">
+                <a href="contact.php" aria-label="Message" class="flex flex-col items-center space-y-0.5 focus:outline-none">
+                    <i class="fas fa-comment-alt text-lg"></i>
+                    <span>Contact</span>
+                </a>
+            </li>
+            <li class="flex flex-col items-center justify-center py-1.5 w-full text-indigo-900 font-semibold">
+                <a href="cart.php" aria-label="Cart" class="flex flex-col items-center space-y-0.5 focus:outline-none">
+                    <i class="fas fa-shopping-cart text-lg"></i>
+                    <span>Cart</span>
+                </a>
+            </li>
+            <li class="flex flex-col items-center justify-center py-1.5 w-full hover:text-indigo-900">
+                <a href="account.php" aria-label="Account" class="flex flex-col items-center space-y-0.5 focus:outline-none">
+                    <i class="fas fa-user text-lg"></i>
+                    <span>Account</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <footer class="bg-white border-t border-gray-200 text-xs text-gray-500 py-6 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0">
+            <div class="truncate">
+                © <?php echo date("Y"); ?> JuaKali
             </div>
-            <div class="social-icons mt-3">
-                <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
-                <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
-                <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+            <div class="space-x-3">
+                <a class="hover:text-indigo-900" href="privacy.php">Privacy</a>
+                <a class="hover:text-indigo-900" href="terms.php">Terms</a>
+                <a class="hover:text-indigo-900" href="contact.php">Contact</a>
             </div>
         </div>
     </footer>
-
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        $(document).ready(function() {
-            $('.quantity').change(function() {
-                var productId = $(this).data('product-id');
-                var quantity = $(this).val();
-                $.post('update_cart.php', { product_id: productId, quantity: quantity }, function() {
-                    location.reload();
-                });
-            });
-        });
-    </script>
 </body>
 </html>

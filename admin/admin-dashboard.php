@@ -13,11 +13,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['a
     exit();
 }
 
-// Fetch pending products (use approval_status instead of status)
+// Fetch pending products (use status instead of status)
 $products = $pdo->query("SELECT p.*, a.name AS artisan_name 
                          FROM products p 
                          JOIN artisans a ON p.artisan_id = a.id 
-                         WHERE p.approval_status = 'Pending'")
+                         WHERE p.status = 'Pending'")
                 ->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch all orders with payment status
@@ -36,7 +36,7 @@ $orders = $pdo->query("SELECT o.*, u.name AS customer
     <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;700&family=Lora:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Ubuntu', sans-serif; background-color: #f8f1e9; }
-        .navbar { background-color: #FF5733; padding: 1rem; position: fixed; width: 100%; z-index: 1000; }
+        .navbar { background-color: #FF5733; padding: 1rem; width: 100%; z-index: 1000; }
         .navbar-brand, .nav-link { color: #FFD700 !important; font-weight: bold; }
         .dashboard-container { padding: 2rem; margin-top: 60px; }
         .dashboard-table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
@@ -95,7 +95,7 @@ $orders = $pdo->query("SELECT o.*, u.name AS customer
                             <td><?php echo htmlspecialchars($product['artisan_name']); ?></td>
                             <td><?php echo htmlspecialchars($product['category'] ?? 'N/A'); ?></td>
                             <td>KES <?php echo number_format($product['price'], 2); ?></td>
-                            <td><?php echo htmlspecialchars($product['approval_status']); ?></td>
+                            <td><?php echo htmlspecialchars($product['status']); ?></td>
                             <td>
                                 <form method="POST" style="margin: 0;">
                                     <input type="hidden" name="action" value="approve">

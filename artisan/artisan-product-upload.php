@@ -65,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Create product if no errors
     if (!$error) {
         // Update createProduct to include category
-        $stmt = $GLOBALS['pdo']->prepare("INSERT INTO products (artisan_id, name, description, price, image_url, category, approval_status) VALUES (?, ?, ?, ?, ?, ?, 'Pending')");
+        $stmt = $GLOBALS['pdo']->prepare("INSERT INTO products (artisan_id, name, description, price, image_url, category, status) VALUES (?, ?, ?, ?, ?, ?, 'Pending')");
         if ($stmt->execute([$artisan['id'], $name, $description, $price, $image_url, $category])) {
             $success = "Product uploaded successfully! Awaiting admin approval.";
             // Clear form fields after successful upload
@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;700&family=Lora:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Ubuntu', sans-serif; background-color: #f8f1e9; }
-        .navbar { background-color: #FF5733; padding: 1rem; position: fixed; width: 100%; z-index: 1000; }
+        .navbar { background-color: #FF5733; padding: 1rem; z-index: 1000; }
         .navbar-brand, .nav-link { color: #FFD700 !important; font-weight: bold; }
         .upload-container { padding: 2rem; max-width: 600px; margin: 0 auto; margin-top: 60px; }
         .upload-form { background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }

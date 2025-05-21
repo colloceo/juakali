@@ -258,4 +258,29 @@ function getRecentArtisanSpotlights(int $limit = 3): array {
     $stmt->execute();
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
+
+function addToWishlist($user_id, $product_id) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT * FROM wishlist WHERE user_id = ? AND product_id = ?");
+    $stmt->execute([$user_id, $product_id]);
+    if (!$stmt->fetch()) {
+        $stmt = $pdo->prepare("INSERT INTO wishlist (user_id, product_id) VALUES (?, ?)");
+        return $stmt->execute([$user_id, $product_id]);
+    }
+    return true; // Already in wishlist
+}
+
+function removeFromWishlist($user_id, $product_id) {
+    global $pdo;
+    $stmt = $pdo->prepare("DELETE FROM wishlist WHERE user_id = ? AND product_id = ?");
+    return $stmt->execute([$user_id, $product_id]);
+}
+
+function getWishlistItems($user_id) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT w.*, p.name, p.price FROM wishlist w JOIN products p ON w.product_id = p.id WHERE w.user_id = ?");
+    $stmt->execute([$user_id]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
 ?>

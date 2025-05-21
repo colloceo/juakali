@@ -11,16 +11,9 @@
             font-family: 'Ubuntu', sans-serif;
             background-color: #f8f1e9;
         }
-        .navbar {
-            background-color: #FF5733;
-            padding: 1rem;
-            position: fixed;
-            width: 100&;
-        }
-        .navbar-brand, .nav-link {
-            color: #FFD700 !important;
-            font-weight: bold;
-        }
+        .navbar { background-color: #FF5733; padding: 1rem 0; }
+        .navbar-brand { color: #FFD700 !important; font-weight: bold; font-size: 1.5rem; }
+        .nav-link { color: #FFD700 !important; font-weight: 500; margin-left: 1rem; }
         .about-container {
             padding: 2rem;
             text-align: center;
@@ -49,19 +42,20 @@
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg">
-        <div class="container-fluid">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
+        <div class="container">
             <a class="navbar-brand" href="index.php">JuaKali</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-               <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="index.php">Home</a></li>
-                    <li class="nav-item"><a class="nav-link" href="about.php">About</a></li>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item"><a class="nav-link active" aria-current="page" href="index.php">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="about.php">About Us</a></li>
+                    <!-- <li class="nav-item"><a class="nav-link" href="products.php">Products</a></li> -->
                     <li class="nav-item"><a class="nav-link" href="contact.php">Contact</a></li>
-                    <li class="nav-item"><a class="nav-link" href="login.php">Login</a></li>
-                    <!-- <li class="nav-item"><a class="nav-link" href="signup.html">Sign Up</a></li> -->
+                        <li class="nav-item"><a class="nav-link" href="login.php">Login</a></li>
+                        <li class="nav-item"><a class="nav-link" href="artisan/artisan-signup.php">Become an Artisan</a></li>
                 </ul>
             </div>
         </div>
