@@ -1,228 +1,356 @@
 <?php
 session_start();
-require_once 'functions.php';
+require_once 'functions.php'; // Assumes this file contains PDO connection and other necessary functions
 
-$user_id = $_SESSION['user_id'] ?? null;
-if (!$user_id) {
-    header("Location: login.php");
+// Ensure user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php?redirect=checkout");
     exit();
 }
 
-$cart_items = getCartItems($user_id);
-if (empty($cart_items)) {
-    header("Location: cart.php?error=" . urlencode("Your cart is empty."));
-    exit();
+$user_id = $_SESSION['user_id'];
+
+// Fetch cart items
+$stmt = $pdo->prepare("SELECT c.id AS cart_id, c.quantity, p.id AS product_id, p.name, p.price, p.quantity AS stock 
+                        FROM cart c 
+                        JOIN products p ON c.product_id = p.id 
+                        WHERE c.user_id = ?");
+$stmt->execute([$user_id]);
+$cart_items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Calculate total
+$total = 0;
+foreach ($cart_items as $item) {
+    $total += $item['price'] * $item['quantity'];
 }
 
-$total = array_sum(array_map(fn($item) => $item['price'] * $item['quantity'], $cart_items));
-if ($total <= 0) {
-    header("Location: cart.php?error=" . urlencode("Invalid cart total."));
-    exit();
-}
+// Fetch user address
+$stmt = $pdo->prepare("SELECT * FROM addresses WHERE user_id = ? LIMIT 1");
+$stmt->execute([$user_id]);
+$address = $stmt->fetch(PDO::FETCH_ASSOC);
 
-$error = '';
-$success = '';
+// Handle checkout (placeholder for now)
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['place_order'])) {
+    $street = filter_input(INPUT_POST, 'street', FILTER_SANITIZE_STRING);
+    $city = filter_input(INPUT_POST, 'city', FILTER_SANITIZE_STRING);
+    $state = filter_input(INPUT_POST, 'state', FILTER_SANITIZE_STRING);
+    $postal_code = filter_input(INPUT_POST, 'postal-code', FILTER_SANITIZE_STRING);
+    $country = filter_input(INPUT_POST, 'country', FILTER_SANITIZE_STRING);
+    $payment_method = filter_input(INPUT_POST, 'payment_method', FILTER_SANITIZE_STRING);
+    $mpesa_phone_number = null;
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $payment_method = $_POST['payment'] ?? '';
-    $delivery_option = $_POST['delivery_option'] ?? '';
-    $mpesa_number = $_POST['mpesa_number'] ?? '';
-
-    if (empty($payment_method) || empty($delivery_option)) {
-        $error = "Please select both a payment method and delivery option.";
-    } elseif ($payment_method === 'mpesa' && empty($mpesa_number)) {
-        $error = "Please enter a valid M-Pesa number.";
-    } else {
-        // Create order
-        $order_id = createOrder($user_id, $total, $payment_method, $delivery_option);
-        foreach ($cart_items as $item) {
-            addOrderItem($order_id, $item['product_id'], $item['quantity'], $item['price']);
-        }
-
-        if ($payment_method === 'mpesa') {
-            // Store necessary data in session for mpesa.php
-            $_SESSION['totalAmount'] = $total;
-            $_SESSION['mpesa_number'] = $mpesa_number;
-            $_SESSION['order_id'] = $order_id;
-            $_SESSION['cart_items'] = $cart_items;
-            $_SESSION['email'] = $_SESSION['email'] ?? 'default@example.com'; // Replace with actual user email retrieval
-            header("Location: mpesa.php");
-            exit();
-        } else {
-            // For other payment methods (e.g., cash on delivery), clear cart and redirect
-            $pdo->prepare("DELETE FROM cart WHERE user_id = ?")->execute([$user_id]);
-            header("Location: payment_success.php?order_id=$order_id");
-            exit();
+    if ($payment_method === 'mobile_money') {
+        $mpesa_phone_number = filter_input(INPUT_POST, 'mpesa_phone_number', FILTER_SANITIZE_STRING);
+        // Basic validation for M-Pesa number (e.g., starts with 07 or +2547, 9-12 digits)
+        if (!preg_match('/^(07|\+2547)\d{8}$/', $mpesa_phone_number)) {
+            // Handle invalid M-Pesa number, e.g., redirect back with an error message
+            // For now, we'll just set it to null if invalid. In a real app, you'd show an error.
+            $mpesa_phone_number = null; 
         }
     }
+
+    $use_saved_address = isset($_POST['use_saved_address']) && $address;
+
+    $address_to_use = $use_saved_address ? $address : [
+        'street' => $street,
+        'city' => $city,
+        'state' => $state,
+        'postal_code' => $postal_code,
+        'country' => $country
+    ];
+
+    // Insert order
+    // You might want to store payment_method and mpesa_phone_number in the orders table
+    $stmt = $pdo->prepare("INSERT INTO orders (user_id, total, status, payment_method, mpesa_phone_number) VALUES (?, ?, ?, ?, ?)");
+    $stmt->execute([$user_id, $total, 'Pending', $payment_method, $mpesa_phone_number]);
+
+    $order_id = $pdo->lastInsertId();
+
+    // Insert order details
+    foreach ($cart_items as $item) {
+        $stmt = $pdo->prepare("INSERT INTO order_details (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)");
+        $stmt->execute([$order_id, $item['product_id'], $item['quantity'], $item['price']]);
+    }
+
+    // Clear cart
+    $stmt = $pdo->prepare("DELETE FROM cart WHERE user_id = ?");
+    $stmt->execute([$user_id]);
+
+    // Save or update address if new
+    if (!$use_saved_address && !$address) {
+        $stmt = $pdo->prepare("INSERT INTO addresses (user_id, street, city, state, postal_code, country) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$user_id, $address_to_use['street'], $address_to_use['city'], $address_to_use['state'], $address_to_use['postal_code'], $address_to_use['country']]);
+    } elseif (!$use_saved_address && $address) {
+        $stmt = $pdo->prepare("UPDATE addresses SET street = ?, city = ?, state = ?, postal_code = ?, country = ? WHERE user_id = ?");
+        $stmt->execute([$address_to_use['street'], $address_to_use['city'], $address_to_use['state'], $address_to_use['postal_code'], $address_to_use['country'], $user_id]);
+    }
+
+    header("Location: order_confirmation.php?order_id=$order_id");
+    exit();
 }
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JuaKali - Checkout</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;700&family=Lora:wght@400;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Checkout - JuaKali</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
     <style>
-        body { font-family: 'Ubuntu', sans-serif; background-color: #f8f1e9; }
-        .navbar { background-color: #FF5733; padding: 1rem; }
-        .navbar-brand, .nav-link { color: #FFD700 !important; font-weight: bold; }
-        .checkout-container { padding: 2rem; }
-        .progress { margin-bottom: 1rem; }
-        .btn-custom { background-color: #FFA500; color: #fff; border: none; padding: 0.75rem; font-size: 1rem; min-height: 48px; }
-        .qr-code { width: 150px; height: 150px; margin: 1rem auto; }
-        .alert { margin: 1rem 0; }
-        footer { background-color: #FF5733; color: #FFD700; padding: 1rem; text-align: center; }
-        @media (max-width: 768px) { .checkout-container { padding: 1rem; } }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9fafb;
+            padding-top: 112px; /* Adjusted from 72px to match other pages' header height */
+            padding-bottom: 56px; /* mobile bottom nav height */
+        }
     </style>
 </head>
-<body>
-    <nav class="navbar navbar-expand-lg">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="index-after-login.php">JuaKali</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="categoryDropdown" data-bs-toggle="dropdown">Products</a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#">Decor</a></li>
-                            <li><a class="dropdown-item" href="#">Textiles</a></li>
-                            <li><a class="dropdown-item" href="#">Food</a></li>
-                            <li><a class="dropdown-item" href="#">Personal Care</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item"><a class="nav-link" href="#artisans">Artisans</a></li>
-                    <li class="nav-item"><a class="nav-link" href="cart.php">Cart</a></li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="accountDropdown" data-bs-toggle="dropdown">Account</a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="account.php">My Account</a></li>
-                            <li><a class="dropdown-item" href="wishlist.php">Wishlist</a></li>
-                            <li><a class="dropdown-item" href="logout.php">Logout</a></li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-
-    <div class="checkout-container">
-        <h2 class="text-center my-4" style="font-family: 'Lora', serif; color: #FF5733;">Checkout</h2>
-        <div class="progress">
-            <div class="progress-bar" style="width: 100%;">Payment</div>
-        </div>
-        <?php if ($error): ?>
-            <div class="alert alert-danger text-center" role="alert"><?php echo $error; ?></div>
-        <?php endif; ?>
-        <div class="row">
-            <div class="col-md-6">
-                <h5>Order Summary</h5>
-                <?php foreach ($cart_items as $item): ?>
-                    <p><?php echo htmlspecialchars($item['name']); ?> - KES <?php echo number_format($item['price'] * $item['quantity'], 2); ?></p>
-                <?php endforeach; ?>
-                <p><strong>Total: KES <?php echo number_format($total, 2); ?></strong></p>
-            </div>
-            <div class="col-md-6">
-                <form method="POST" id="checkoutForm">
-
-                    <h5>Delivery Option</h5>
-                    <select class="form-select mb-3" name="delivery_option" required>
-                        <option value="">Select "Mtaani" Pick-up Point</option>
-                        <option value="Nairobi - Westlands Shop">Nairobi - Westlands Shop</option>
-                        <option value="Nairobi - CBD Shop">Nairobi - CBD Shop</option>
-                        <option value="Kisumu - CBD Shop">Kisumu -CBD Shop</option>
-                        <option value="MOmbasa - CBD Shop">Mombasa - CBD Shop</option>
-                    </select>
-                    
-                    <h5>Payment Method</h5>
-                    <select class="form-select mb-3" name="payment" id="paymentMethod" required>
-                        <option value="">Select Payment Method</option>
-                        <option value="mpesa">M-Pesa</option>
-                        <option value="cod">Cash on Delivery</option>
-                    </select>
-
-                    <!-- M-Pesa Modal Trigger -->
-                    <div id="mpesaButton" style="display: none;">
-                        <button type="button" class="btn btn-custom w-100 mb-3" data-bs-toggle="modal" data-bs-target="#payWithMpesaModal">Pay with M-Pesa</button>
-                    </div>
-                    <button type="submit" class="btn btn-custom w-100" id="confirmButton">Confirm Order</button>
-                </form>
-
-                <!-- Pay with M-Pesa Modal -->
-                <div class="modal fade" id="payWithMpesaModal" tabindex="-1" aria-labelledby="payWithMpesaModalLabel" aria-hidden="true">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="payWithMpesaModalLabel">Pay with M-Pesa</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="mb-3">
-                                    <label for="phone" class="form-label">Enter M-Pesa Number</label>
-                                    <input type="text" class="form-control" id="phone" name="mpesa_number" required placeholder="+254123456789">
-                                </div>
-                                <button type="button" class="btn btn-custom w-100" onclick="submitCheckoutForm()">Proceed to Pay</button>
-                            </div>
-                        </div>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+    <header class="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-50">
+        <div class="max-w-7xl mx-auto flex items-center justify-center py-3 px-4 sm:px-6 lg:px-8 border-b border-gray-200">
+            <form aria-label="Search products" class="w-full max-w-3xl" role="search" action="products.php" method="GET">
+                <label class="sr-only" for="search-input">Search products</label>
+                <div class="relative text-gray-600 focus-within:text-gray-900">
+                    <input aria-describedby="search-desc" class="block w-full rounded border border-gray-300 py-2 pl-10 pr-4 text-sm placeholder-gray-400 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600" id="search-input" name="search" placeholder="Search products..." type="search">
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <i class="fas fa-search text-gray-400 text-sm"></i>
                     </div>
                 </div>
+                <p class="sr-only" id="search-desc">Enter product name to search</p>
+            </form>
+        </div>
+        <div class="max-w-7xl mx-auto flex items-center justify-between py-3 px-4 sm:px-6 lg:px-8">
+            <div class="text-lg font-semibold truncate flex-shrink-0">
+                JuaKali
+            </div>
+            <nav class="hidden sm:flex flex-wrap gap-6 text-xs font-semibold text-gray-600 justify-center flex-1 px-6">
+                <a class="text-indigo-900 border-b-2 border-indigo-900 pb-1" href="index.php">All</a>
+                <a class="hover:text-indigo-900" href="index.php?category=Decor">Decor</a>
+                <a class="hover:text-indigo-900" href="index.php?category=Textiles">Textiles</a>
+                <a class="hover:text-indigo-900" href="index.php?category=Food">Food</a>
+                <a class="hover:text-indigo-900" href="index.php?category=Personal Care">Personal Care</a>
+            </nav>
+            <div class="hidden sm:flex items-center space-x-6 flex-shrink-0 text-gray-600 text-sm">
+                <a href="cart.php" aria-label="Cart" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
+                    <i class="fas fa-shopping-cart text-lg"></i>
+                    <span>Cart</span>
+                </a>
+                <a href="profile.php" aria-label="Account" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
+                    <i class="fas fa-user text-lg"></i>
+                    <span>Account</span>
+                </a>
+                <a href="logout.php" aria-label="Logout" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
+                    <i class="fas fa-sign-out-alt text-lg"></i>
+                    <span>Logout</span>
+                </a>
             </div>
         </div>
-    </div>
+        <nav class="sm:hidden flex flex-wrap gap-3 text-xs font-semibold text-gray-600 justify-center border-t border-gray-200 py-2">
+            <a class="text-indigo-900 border-b-2 border-indigo-900 pb-1" href="index.php">All</a>
+            <a class="hover:text-indigo-900" href="index.php?category=Decor">Decor</a>
+            <a class="hover:text-indigo-900" href="index.php?category=Textiles">Textiles</a>
+            <a class="hover:text-indigo-900" href="index.php?category=Food">Food</a>
+            <a class="hover:text-indigo-900" href="index.php?category=Personal Care">Personal Care</a>
+        </nav>
+    </header>
 
-    <footer>
-        <div class="container">
-            <p>© <?php echo date("Y"); ?> JuaKali. All rights reserved.</p>
-            <div class="mt-2">
-                <a href="terms.php">Terms</a> |
-                <a href="privacy.php">Privacy</a> |
-                <a href="contact.php">Contact</a>
+    <main class="flex-grow max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-6 sm:pt-24 sm:pb-24">
+        <h1 class="text-2xl font-semibold text-gray-900 mb-6">Checkout</h1>
+
+        <?php if (empty($cart_items)): ?>
+            <p class="text-gray-600 text-sm">Your cart is empty. <a href="index.php" class="text-indigo-600 hover:text-indigo-900">Continue shopping</a>.</p>
+        <?php else: ?>
+            <section class="bg-white rounded-lg shadow p-6 space-y-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Review Your Cart</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                                <th scope="col" class="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                                <th scope="col" class="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <?php foreach ($cart_items as $item): ?>
+                                <tr>
+                                    <td class="px-4 py-3 whitespace-nowrap flex items-center space-x-4">
+                                        <img alt="<?php echo htmlspecialchars($item['name']); ?>" class="h-16 w-16 object-contain rounded" src="https://placehold.co/64x64/E0E7FF/4338CA?text=<?php echo urlencode($item['name']); ?>">
+                                        <div class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($item['name']); ?></div>
+                                    </td>
+                                    <td class="hidden sm:table-cell px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                                        KES <?php echo number_format($item['price'], 2); ?>
+                                    </td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600"><?php echo $item['quantity']; ?></td>
+                                    <td class="hidden sm:table-cell px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900">
+                                        KES <?php echo number_format($item['price'] * $item['quantity'], 2); ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-lg font-semibold text-gray-900 text-right">
+                    Total: KES <?php echo number_format($total, 2); ?>
+                </div>
+
+                <h2 class="text-xl font-semibold text-gray-900 mb-4 mt-6">Shipping Address</h2>
+                <form method="POST" class="space-y-6">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <?php if ($address): ?>
+                            <label class="text-sm text-gray-700">
+                                <input type="checkbox" name="use_saved_address" id="use_saved_address" value="1" <?php echo $address ? 'checked' : ''; ?> class="focus:ring-indigo-600 h-4 w-4 text-indigo-600 border-gray-300"> Use saved address
+                            </label>
+                        <?php endif; ?>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6" id="address-form-fields">
+                        <div class="sm:col-span-2">
+                            <label for="street" class="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
+                            <input class="block w-full rounded border border-gray-300 px-3 py-2 placeholder-gray-400 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 text-sm" id="street" name="street" placeholder="123 Main St" required type="text" value="<?php echo $address ? htmlspecialchars($address['street']) : ''; ?>" <?php echo $address ? 'disabled' : ''; ?>>
+                        </div>
+                        <div>
+                            <label for="city" class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                            <input class="block w-full rounded border border-gray-300 px-3 py-2 placeholder-gray-400 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 text-sm" id="city" name="city" placeholder="Nairobi" required type="text" value="<?php echo $address ? htmlspecialchars($address['city']) : ''; ?>" <?php echo $address ? 'disabled' : ''; ?>>
+                        </div>
+                        <div>
+                            <label for="state" class="block text-sm font-medium text-gray-700 mb-1">State/Province</label>
+                            <input class="block w-full rounded border border-gray-300 px-3 py-2 placeholder-gray-400 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 text-sm" id="state" name="state" placeholder="Nairobi County" type="text" value="<?php echo $address ? htmlspecialchars($address['state']) : ''; ?>" <?php echo $address ? 'disabled' : ''; ?>>
+                        </div>
+                        <div>
+                            <label for="postal-code" class="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
+                            <input class="block w-full rounded border border-gray-300 px-3 py-2 placeholder-gray-400 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 text-sm" id="postal-code" name="postal-code" placeholder="00100" type="text" value="<?php echo $address ? htmlspecialchars($address['postal_code']) : ''; ?>" <?php echo $address ? 'disabled' : ''; ?>>
+                        </div>
+                        <div>
+                            <label for="country" class="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                            <input class="block w-full rounded border border-gray-300 px-3 py-2 placeholder-gray-400 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 text-sm" id="country" name="country" placeholder="Kenya" required type="text" value="<?php echo $address ? htmlspecialchars($address['country']) : ''; ?>" <?php echo $address ? 'disabled' : ''; ?>>
+                        </div>
+                    </div>
+
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4 mt-6">Payment Method</h2>
+                    <div class="space-y-4">
+                        <label class="flex items-center space-x-2">
+                            <input type="radio" name="payment_method" value="credit_card" id="payment_credit_card" checked class="focus:ring-indigo-600 h-4 w-4 text-indigo-600 border-gray-300">
+                            <span class="text-sm text-gray-700">Credit/Debit Card</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="radio" name="payment_method" value="mobile_money" id="payment_mobile_money" class="focus:ring-indigo-600 h-4 w-4 text-indigo-600 border-gray-300">
+                            <span class="text-sm text-gray-700">Mobile Money (M-Pesa)</span>
+                        </label>
+                    </div>
+
+                    <div id="mpesa_phone_number_field" class="hidden mt-4">
+                        <label for="mpesa_phone_number" class="block text-sm font-medium text-gray-700 mb-1">M-Pesa Phone Number</label>
+                        <input type="tel" id="mpesa_phone_number" name="mpesa_phone_number" placeholder="e.g., 0712345678 or +254712345678" class="block w-full rounded border border-gray-300 px-3 py-2 placeholder-gray-400 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 text-sm">
+                        <p class="mt-1 text-xs text-gray-500">Please enter the phone number registered with M-Pesa.</p>
+                    </div>
+
+                    <button type="submit" name="place_order" class="w-full bg-indigo-600 text-white py-2 rounded text-sm font-semibold hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-1 mt-6">
+                        Place Order
+                    </button>
+                </form>
+            </section>
+        <?php endif; ?>
+    </main>
+
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 sm:hidden">
+        <ul class="flex justify-between text-xs text-gray-600">
+            <li class="flex flex-col items-center justify-center py-1.5 w-full hover:text-indigo-900">
+                <a href="index.php" aria-label="Home" class="flex flex-col items-center space-y-0.5 focus:outline-none">
+                    <i class="fas fa-home text-lg"></i>
+                    <span>Home</span>
+                </a>
+            </li>
+            <li class="flex flex-col items-center justify-center py-1.5 w-full hover:text-indigo-900">
+                <a href="products.php" aria-label="Categories" class="flex flex-col items-center space-y-0.5 focus:outline-none">
+                    <i class="fas fa-th-large text-lg"></i>
+                    <span>Categories</span>
+                </a>
+            </li>
+            <li class="flex flex-col items-center justify-center py-1.5 w-full hover:text-indigo-900">
+                <a href="contact.php" aria-label="Message" class="flex flex-col items-center space-y-0.5 focus:outline-none">
+                    <i class="fas fa-comment-alt text-lg"></i>
+                    <span>Contact</span>
+                </a>
+            </li>
+            <li class="flex flex-col items-center justify-center py-1.5 w-full hover:text-indigo-900">
+                <a href="cart.php" aria-label="Cart" class="flex flex-col items-center space-y-0.5 focus:outline-none">
+                    <i class="fas fa-shopping-cart text-lg"></i>
+                    <span>Cart</span>
+                </a>
+            </li>
+            <li class="flex flex-col items-center justify-center py-1.5 w-full hover:text-indigo-900">
+                <a href="profile.php" aria-label="Account" class="flex flex-col items-center space-y-0.5 focus:outline-none">
+                    <i class="fas fa-user text-lg"></i>
+                    <span>Account</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <footer class="bg-white border-t border-gray-200 text-xs text-gray-500 py-6 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0">
+            <div class="truncate">
+                © <?php echo date("Y"); ?> JuaKali
             </div>
-            <div class="social-icons mt-3">
-                <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
-                <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
-                <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+            <div class="space-x-3">
+                <a class="hover:text-indigo-900" href="privacy.php">Privacy</a>
+                <a class="hover:text-indigo-900" href="terms.php">Terms</a>
+                <a class="hover:text-indigo-900" href="contact.php">Contact</a>
             </div>
         </div>
     </footer>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://kit.fontawesome.com/a076d05399.js"></script>
     <script>
-        // Show/Hide M-Pesa button based on payment method selection
-        document.getElementById('paymentMethod').addEventListener('change', function() {
-            const mpesaButton = document.getElementById('mpesaButton');
-            const confirmButton = document.getElementById('confirmButton');
-            if (this.value === 'mpesa') {
-                mpesaButton.style.display = 'block';
-                confirmButton.style.display = 'none';
-            } else {
-                mpesaButton.style.display = 'none';
-                confirmButton.style.display = 'block';
-            }
-        });
+        document.addEventListener('DOMContentLoaded', function() {
+            const useSavedAddressCheckbox = document.getElementById('use_saved_address');
+            const addressFormFields = document.getElementById('address-form-fields');
+            const addressInputs = addressFormFields.querySelectorAll('input');
 
-        // Function to append M-Pesa number to form and submit
-        function submitCheckoutForm() {
-            const mpesaNumber = document.getElementById('phone').value;
-            if (!mpesaNumber) {
-                alert("Please enter your M-Pesa number.");
-                return;
+            // Function to toggle address input fields disabled state
+            function toggleAddressFields() {
+                const isDisabled = useSavedAddressCheckbox.checked;
+                addressInputs.forEach(input => {
+                    input.disabled = isDisabled;
+                    if (isDisabled) {
+                        input.removeAttribute('required'); // Remove required if disabled
+                    } else {
+                        input.setAttribute('required', 'required'); // Add required back if enabled
+                    }
+                });
             }
-            const form = document.getElementById('checkoutForm');
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'mpesa_number';
-            input.value = mpesaNumber;
-            form.appendChild(input);
-            form.submit();
-        }
+
+            // Initial state based on checkbox
+            if (useSavedAddressCheckbox) { // Check if the checkbox exists
+                toggleAddressFields();
+                useSavedAddressCheckbox.addEventListener('change', toggleAddressFields);
+            }
+
+            const paymentMethodRadios = document.querySelectorAll('input[name="payment_method"]');
+            const mpesaPhoneNumberField = document.getElementById('mpesa_phone_number_field');
+            const mpesaPhoneNumberInput = document.getElementById('mpesa_phone_number');
+
+            // Function to toggle M-Pesa phone number field visibility
+            function toggleMpesaField() {
+                if (document.getElementById('payment_mobile_money').checked) {
+                    mpesaPhoneNumberField.classList.remove('hidden');
+                    mpesaPhoneNumberInput.setAttribute('required', 'required');
+                } else {
+                    mpesaPhoneNumberField.classList.add('hidden');
+                    mpesaPhoneNumberInput.removeAttribute('required');
+                }
+            }
+
+            // Add event listeners to payment method radios
+            paymentMethodRadios.forEach(radio => {
+                radio.addEventListener('change', toggleMpesaField);
+            });
+
+            // Initial state based on default checked radio button
+            toggleMpesaField();
+        });
     </script>
 </body>
 </html>

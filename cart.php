@@ -77,10 +77,22 @@ if (isset($_GET['remove'])) {
                 JuaKali
             </div>
             <nav class="hidden sm:flex space-x-6 text-sm text-gray-600">
-                <a class="hover:text-indigo-900" href="index-after-login.php">Home</a>
-                <a class="hover:text-indigo-900" href="products.php">Products</a>
-                <a class="text-indigo-900 font-semibold" href="cart.php">Cart</a>
-                <a class="hover:text-indigo-900" href="account.php">Account</a>
+                <a href="index-after-login.php" aria-label="Home" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
+                    <i class="fas fa-home text-lg"></i>
+                    <span></span>
+                </a>
+                <a href="products.php" aria-label="Store" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
+                    <i class="fas fa-store text-lg"></i>
+                    <span></span>
+                </a>
+                <a href="cart.php" aria-label="Cart" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
+                    <i class="fas fa-shopping-cart text-lg"></i>
+                    <span></span>
+                </a>
+                <a href="account.php" aria-label="Account" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
+                    <i class="fas fa-user text-lg"></i>
+                    <span></span>
+                </a>
             </nav>
         </div>
     </header>

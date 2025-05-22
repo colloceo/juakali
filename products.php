@@ -2,192 +2,258 @@
 session_start();
 require_once 'functions.php';
 
+// Ensure user is logged in
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit();
 }
 
 $user_id = $_SESSION['user_id'];
-$category = isset($_GET['category']) ? $_GET['category'] : '';
-$query = "SELECT * FROM products WHERE status = 'Approved'";
-if ($category) {
-    $query .= " AND category = ?";
-    $stmt = $pdo->prepare($query);
-    $stmt->execute([$category]);
-    $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} else {
-    $products = $pdo->query($query)->fetchAll(PDO::FETCH_ASSOC);
-}
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['product_id'])) {
+// Fetch approved products (limit to 12 for this page)
+$products = $pdo->query("SELECT * FROM products WHERE status = 'Approved' LIMIT 12")->fetchAll(PDO::FETCH_ASSOC);
+
+// Handle add to cart
+if (isset($_POST['add_to_cart'])) {
     $product_id = (int)$_POST['product_id'];
-    $stmt = $pdo->prepare("SELECT id FROM products WHERE id = ? AND status = 'Approved'");
-    $stmt->execute([$product_id]);
-    if ($stmt->fetchColumn() && addToCart($user_id, $product_id, 1)) {
-        header("Location: products.php?added=true" . ($category ? "&category=$category" : ''));
-        exit();
-    } else {
-        header("Location: products.php?error=failed" . ($category ? "&category=$category" : ''));
-        exit();
-    }
+    addToCart($user_id, $product_id, 1);
+    header("Location: index-after-login.php?added_to_cart=true");
+    exit();
 }
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['wishlist_id'])) {
-    $product_id = (int)$_POST['wishlist_id'];
-    $stmt = $pdo->prepare("SELECT id FROM products WHERE id = ? AND status = 'Approved'");
-    $stmt->execute([$product_id]);
-    if ($stmt->fetchColumn() && addToWishlist($user_id, $product_id)) {
-        header("Location: products.php?wishlisted=true" . ($category ? "&category=$category" : ''));
-        exit();
-    } else {
-        header("Location: products.php?error=wishlist_failed" . ($category ? "&category=$category" : ''));
-        exit();
-    }
+// Handle add to wishlist
+if (isset($_POST['add_to_wishlist'])) {
+    $product_id = (int)$_POST['product_id'];
+    addToWishlist($user_id, $product_id);
+    header("Location: index-after-login.php?added_to_wishlist=true");
+    exit();
 }
-
-$success = isset($_GET['added']) && $_GET['added'] === 'true' ? "Product added to cart successfully!" : '';
-$wishlisted = isset($_GET['wishlisted']) && $_GET['wishlisted'] === 'true' ? "Product added to wishlist successfully!" : '';
-$error = isset($_GET['error']) && $_GET['error'] === 'failed' ? "Failed to add product to cart. Please try again." : '';
-$wishlist_error = isset($_GET['error']) && $_GET['error'] === 'wishlist_failed' ? "Failed to add product to wishlist. Please try again." : '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JuaKali - Products</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;700&family=Lora:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>JuaKali - Handcrafted Products</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
     <style>
-        body { font-family: 'Ubuntu', sans-serif; background-color: #f8f9fa; margin: 0; }
-        .navbar { background-color: #FF5733; padding: 1rem; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .navbar-brand, .nav-link { color: #FFD700 !important; font-weight: bold; }
-        .hero-section { background: url('https://via.placeholder.com/1200x300?text=Explore+Products') no-repeat center; background-size: cover; color: #fff; padding: 4rem 0; text-align: center; margin-top: 60px; }
-        .hero-section h1 { font-family: 'Lora', serif; font-size: 2.5rem; }
-        .product-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; padding: 2rem; }
-        .product-card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 1rem; text-align: center; transition: transform 0.2s; }
-        .product-card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
-        .product-card img { width: 100%; height: 200px; object-fit: contain; border-bottom: 1px solid #ddd; }
-        .btn-custom { background-color: #FFA500; color: #fff; border: none; padding: 0.5rem 1rem; font-size: 1rem; border-radius: 5px; }
-        .btn-wishlist { background-color: #FF5733; color: #fff; border: none; padding: 0.5rem 1rem; font-size: 1rem; border-radius: 5px; }
-        .section-title { font-family: 'Lora', serif; color: #FF5733; text-align: center; margin: 2rem 0; }
-        .alert { margin: 1rem 0; }
-        footer { background-color: #FF5733; color: #FFD700; padding: 1rem; text-align: center; margin-top: 2rem; }
-        .category-nav { margin: 1rem 0; }
-        .category-nav a { color: #FF5733; margin: 0 0.5rem; text-decoration: none; }
-        .category-nav a:hover { text-decoration: underline; }
-        .btn-group { display: flex; gap: 0.5rem; justify-content: center; }
-        @media (max-width: 768px) {
-            .hero-section { padding: 2rem 0; }
-            .product-grid { padding: 1rem; }
-            .product-card { padding: 0.5rem; }
-            .btn-custom, .btn-wishlist { font-size: 0.9rem; padding: 0.4rem 0.8rem; }
-            .navbar-brand, .nav-link { font-size: 0.9rem; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            padding-top: 112px; /* height of fixed navbar + categories */
+            padding-bottom: 56px; /* height of fixed bottom nav on mobile */
+        }
+        .product-card:hover {
+            cursor: pointer;
+            border-color: #4f46e5; /* Indigo-600 */
         }
     </style>
 </head>
-<body>
-    <nav class="navbar navbar-expand-lg">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="index-after-login.php">JuaKali</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="categoryDropdown" data-bs-toggle="dropdown">Categories</a>
-                        <ul class="dropdown-menu" aria-labelledby="categoryDropdown">
-                            <li><a class="dropdown-item" href="products.php?category=Decor">Decor</a></li>
-                            <li><a class="dropdown-item" href="products.php?category=Textiles">Textiles</a></li>
-                            <li><a class="dropdown-item" href="products.php?category=Food">Food</a></li>
-                            <li><a class="dropdown-item" href="products.php?category=Personal Care">Personal Care</a></li>
-                        </ul>
-                    </li>
-                </ul>
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="cart.php"><i class="fas fa-shopping-cart"></i> Cart</a></li>
-                    <li class="nav-item"><a class="nav-link" href="wishlist.php"><i class="fas fa-heart"></i> Wishlist</a></li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="accountDropdown" data-bs-toggle="dropdown">Account</a>
-                        <ul class="dropdown-menu" aria-labelledby="accountDropdown">
-                            <li><a class="dropdown-item" href="account.php">My Account</a></li>
-                            <li><a class="dropdown-item" href="logout.php">Logout</a></li>
-                        </ul>
-                    </li>
-                </ul>
+<body class="bg-white text-gray-900">
+    <!-- Fixed top header -->
+    <header class="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-50">
+        <!-- Top row: Search bar -->
+        <div class="max-w-7xl mx-auto flex items-center justify-center py-3 px-4 sm:px-6 lg:px-8 border-b border-gray-200">
+            <form aria-label="Search products" class="w-full max-w-3xl" role="search" action="products.php" method="GET">
+                <label class="sr-only" for="search-input">Search products</label>
+                <div class="relative text-gray-600 focus-within:text-gray-900">
+                    <input aria-describedby="search-desc" class="block w-full rounded border border-gray-300 py-2 pl-10 pr-4 text-sm placeholder-gray-400 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600" id="search-input" name="search" placeholder="Search products..." type="search">
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <i class="fas fa-search text-gray-400 text-sm"></i>
+                    </div>
+                </div>
+                <p class="sr-only" id="search-desc">Enter product name to search</p>
+            </form>
+        </div>
+        <!-- Second row: Logo left, categories center, cart/account right -->
+        <div class="max-w-7xl mx-auto flex items-center justify-between py-3 px-4 sm:px-6 lg:px-8">
+            <!-- Logo -->
+            <div class="text-lg font-semibold truncate flex-shrink-0">
+                JuaKali
+            </div>
+            <!-- Categories nav (desktop only) -->
+            <nav class="hidden sm:flex flex-wrap gap-6 text-xs font-semibold text-gray-600 justify-center flex-1 px-6">
+                <a class="text-indigo-900 border-b-2 border-indigo-900 pb-1" href="index-after-login.php">All</a>
+                <a class="hover:text-indigo-900" href="index-after-login.php?category=Decor">Decor</a>
+                <a class="hover:text-indigo-900" href="index-after-login.php?category=Textiles">Textiles</a>
+                <a class="hover:text-indigo-900" href="index-after-login.php?category=Food">Food</a>
+                <a class="hover:text-indigo-900" href="index-after-login.php?category=Personal Care">Personal Care</a>
+            </nav>
+            <!-- Cart and Account -->
+            <div class="hidden sm:flex items-center space-x-6 flex-shrink-0 text-gray-600 text-sm">
+                <a href="index-after-login.php" aria-label="Home" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
+                    <i class="fas fa-home text-lg"></i>
+                    <span></span>
+                </a>
+                <a href="products.php" aria-label="Store" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
+                    <i class="fas fa-store text-lg"></i>
+                    <span></span>
+                </a>
+                <a href="cart.php" aria-label="Cart" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
+                    <i class="fas fa-shopping-cart text-lg"></i>
+                    <span></span>
+                </a>
+                <a href="account.php" aria-label="Account" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
+                    <i class="fas fa-user text-lg"></i>
+                    <span></span>
+                </a>
             </div>
         </div>
-    </nav>
+        <!-- Mobile categories below search bar -->
+        <nav class="sm:hidden flex flex-wrap gap-3 text-xs font-semibold text-gray-600 justify-center border-t border-gray-200 py-2">
+            <a class="text-indigo-900 border-b-2 border-indigo-900 pb-1" href="index-after-login.php">All</a>
+            <a class="hover:text-indigo-900" href="index-after-login.php?category=Decor">Decor</a>
+            <a class="hover:text-indigo-900" href="index-after-login.php?category=Textiles">Textiles</a>
+            <a class="hover:text-indigo-900" href="index-after-login.php?category=Food">Food</a>
+            <a class="hover:text-indigo-900" href="index-after-login.php?category=Personal Care">Personal Care</a>
+        </nav>
+    </header>
 
-    <div class="hero-section">
-        <h1>Explore Our Products</h1>
-        <p>Discover handcrafted items from Kenyan artisans.</p>
-        <a href="#products" class="btn btn-custom">Shop Now</a>
-    </div>
-
-    <div class="container">
-        <?php if ($success): ?>
-            <div class="alert alert-success text-center" role="alert"><?php echo $success; ?></div>
-        <?php endif; ?>
-        <?php if ($error): ?>
-            <div class="alert alert-danger text-center" role="alert"><?php echo $error; ?></div>
-        <?php endif; ?>
-        <?php if ($wishlisted): ?>
-            <div class="alert alert-success text-center" role="alert"><?php echo $wishlisted; ?></div>
-        <?php endif; ?>
-        <?php if ($wishlist_error): ?>
-            <div class="alert alert-danger text-center" role="alert"><?php echo $wishlist_error; ?></div>
-        <?php endif; ?>
-
-        <div class="category-nav">
-            <a href="products.php">All</a> |
-            <a href="products.php?category=Decor">Decor</a> |
-            <a href="products.php?category=Textiles">Textiles</a> |
-            <a href="products.php?category=Food">Food</a> |
-            <a href="products.php?category=Personal Care">Personal Care</a>
+    <!-- Ads carousel -->
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6 mt-2">
+        <div class="relative w-full max-w-4xl mx-auto overflow-hidden rounded-lg border border-gray-200">
+            <div class="flex transition-transform duration-700 ease-in-out" id="ads-carousel" style="transform: translateX(0%)">
+                <img alt="Ad image showing handcrafted decor items" class="w-full flex-shrink-0 object-cover h-40 sm:h-56" height="224" src="https://via.placeholder.com/600x224?text=Handcrafted+Decor" width="600">
+                <img alt="Ad image showing artisan textiles" class="w-full flex-shrink-0 object-cover h-40 sm:h-56" height="224" src="https://via.placeholder.com/600x224?text=Artisan+Textiles" width="600">
+                <img alt="Ad image showing local food products" class="w-full flex-shrink-0 object-cover h-40 sm:h-56" height="224" src="https://via.placeholder.com/600x224?text=Local+Food+Products" width="600">
+                <img alt="Ad image showing personal care items" class="w-full flex-shrink-0 object-cover h-40 sm:h-56" height="224" src="https://via.placeholder.com/600x224?text=Personal+Care+Items" width="600">
+            </div>
         </div>
-        <h2 class="section-title" id="products">Featured Products</h2>
-        <div class="product-grid">
+    </section>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col sm:flex-row justify-between items-center mb-4 text-xs text-gray-600 space-y-2 sm:space-y-0">
+            <div>
+                Showing 1-<?php echo count($products); ?> of <?php echo count($products); ?> results
+            </div>
+            <div class="flex items-center space-x-2">
+                <button aria-label="Grid view" class="border border-gray-300 rounded px-2 py-1 hover:bg-gray-100">
+                    <i class="fas fa-th-large"></i>
+                </button>
+                <button aria-label="List view" class="border border-gray-300 rounded px-2 py-1 hover:bg-gray-100">
+                    <i class="fas fa-list"></i>
+                </button>
+            </div>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             <?php foreach ($products as $product): ?>
-                <div class="product-card">
-                    <img src="https://via.placeholder.com/250x200?text=<?php echo urlencode($product['name']); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>">
-                    <h5><?php echo htmlspecialchars($product['name']); ?></h5>
-                    <p class="text-muted">KES <?php echo number_format($product['price'], 2); ?></p>
-                    <div class="btn-group">
+                <div class="product-card border border-gray-200 rounded p-2 relative flex flex-col items-center" onclick="window.location.href='product_details.php?id=<?php echo $product['id']; ?>'">
+                    <?php
+                    // Determine badge based on product status
+                    $badge = '';
+                    $badge_class = '';
+                    $quantity = isset($product['quantity']) ? (int)$product['quantity'] : 0;
+                    $created_at = isset($product['created_at']) ? strtotime($product['created_at']) : time();
+                    $price = isset($product['price']) ? (float)$product['price'] : 0;
+
+                    if ($quantity <= 0) {
+                        $badge = 'Sold Out';
+                        $badge_class = 'bg-red-600 text-white';
+                    } elseif ($created_at > strtotime('-7 days')) {
+                        $badge = 'New';
+                        $badge_class = 'bg-green-600 text-white';
+                    } elseif ($price < 50) {
+                        $badge = 'Sale';
+                        $badge_class = 'bg-indigo-700 text-white';
+                    } else {
+                        $badge = 'Hot';
+                        $badge_class = 'bg-yellow-400 text-gray-900';
+                    }
+                    ?>
+                    <span class="absolute top-1 left-1 <?php echo $badge_class; ?> text-[9px] font-semibold px-1 rounded z-10">
+                        <?php echo $badge; ?>
+                    </span>
+                    <img alt="<?php echo htmlspecialchars($product['name']); ?>" class="mb-2 w-20 h-20 object-contain" src="https://via.placeholder.com/80x80?text=<?php echo urlencode($product['name']); ?>">
+                    <div class="text-xs font-semibold text-gray-900 mb-1 text-center truncate w-full">
+                        <?php echo htmlspecialchars($product['name']); ?>
+                    </div>
+                    <div class="text-xs text-gray-600 text-center w-full">
+                        KES <?php echo number_format($product['price'], 2); ?>
+                    </div>
+                    <div class="mt-2 flex space-x-2">
                         <form method="POST">
                             <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
-                            <button type="submit" class="btn btn-custom"><i class="fas fa-shopping-cart"></i> Add to Cart</button>
+                            <button type="submit" name="add_to_cart" class="text-indigo-600 hover:text-indigo-900 text-xs">
+                                <i class="fas fa-shopping-cart mr-1"></i>Add to Cart
+                            </button>
                         </form>
                         <form method="POST">
-                            <input type="hidden" name="wishlist_id" value="<?php echo $product['id']; ?>">
-                            <button type="submit" class="btn btn-wishlist"><i class="fas fa-heart"></i> Add to Wishlist</button>
+                            <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
+                            <button type="submit" name="add_to_wishlist" class="text-indigo-600 hover:text-indigo-900 text-xs">
+                                <i class="fas fa-heart mr-1"></i>Add to Wishlist
+                            </button>
                         </form>
                     </div>
                 </div>
             <?php endforeach; ?>
         </div>
-    </div>
+    </main>
 
-    <footer>
-        <div class="container">
-            <p>© <?php echo date("Y"); ?> JuaKali. All rights reserved.</p>
-            <div class="mt-2">
-                <a href="terms.php">Terms</a> |
-                <a href="privacy.php">Privacy</a> |
-                <a href="contact.php">Contact</a>
+    <!-- Mobile bottom navigation -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 sm:hidden">
+        <ul class="flex justify-between text-xs text-gray-600">
+            <li class="flex flex-col items-center justify-center py-1.5 w-full text-indigo-900 font-semibold">
+                <a href="index-after-login.php" aria-label="Home" class="flex flex-col items-center space-y-0.5 focus:outline-none">
+                    <i class="fas fa-home text-lg"></i>
+                    <span>Home</span>
+                </a>
+            </li>
+            <li class="flex flex-col items-center justify-center py-1.5 w-full hover:text-indigo-900">
+                <a href="products.php" aria-label="Categories" class="flex flex-col items-center space-y-0.5 focus:outline-none">
+                    <i class="fas fa-th-large text-lg"></i>
+                    <span>Categories</span>
+                </a>
+            </li>
+            <li class="flex flex-col items-center justify-center py-1.5 w-full hover:text-indigo-900">
+                <a href="contact.php" aria-label="Message" class="flex flex-col items-center space-y-0.5 focus:outline-none">
+                    <i class="fas fa-comment-alt text-lg"></i>
+                    <span>Contact</span>
+                </a>
+            </li>
+            <li class="flex flex-col items-center justify-center py-1.5 w-full hover:text-indigo-900">
+                <a href="cart.php" aria-label="Cart" class="flex flex-col items-center space-y-0.5 focus:outline-none">
+                    <i class="fas fa-shopping-cart text-lg"></i>
+                    <span>Cart</span>
+                </a>
+            </li>
+            <li class="flex flex-col items-center justify-center py-1.5 w-full hover:text-indigo-900">
+                <a href="account.php" aria-label="Account" class="flex flex-col items-center space-y-0.5 focus:outline-none">
+                    <i class="fas fa-user text-lg"></i>
+                    <span>Account</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <footer class="max-w-7xl mx-auto px-4 py-6 border-t border-gray-200 text-xs text-gray-500 sm:px-6 lg:px-8 mt-6">
+        <div class="flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0">
+            <div class="truncate">
+                © <?php echo date("Y"); ?> JuaKali
             </div>
-            <div class="social-icons mt-3">
-                <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
-                <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
-                <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+            <div class="space-x-3">
+                <a class="hover:text-indigo-900" href="privacy.php">Privacy</a>
+                <a class="hover:text-indigo-900" href="terms.php">Terms</a>
+                <a class="hover:text-indigo-900" href="contact.php">Contact</a>
             </div>
         </div>
     </footer>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://kit.fontawesome.com/a076d05399.js"></script>
+    <script>
+        // Carousel logic for ads
+        const carousel = document.getElementById('ads-carousel');
+        const totalSlides = carousel.children.length;
+        let currentIndex = 0;
+
+        function showNextSlide() {
+            currentIndex++;
+            if (currentIndex >= totalSlides) {
+                currentIndex = 0;
+            }
+            carousel.style.transform = `translateX(-${currentIndex * 100}%)`;
+        }
+
+        setInterval(showNextSlide, 3000);
+    </script>
 </body>
 </html>
