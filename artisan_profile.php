@@ -157,10 +157,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <i class="fas fa-shopping-cart text-lg"></i>
                     <span></span>
                 </a>
-                <a href="account.php" aria-label="Account" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
-                    <i class="fas fa-user text-lg"></i>
-                    <span></span>
-                </a>
+                 <div class="relative group">
+    <a href="#" aria-label="Account" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none rounded-md px-2 py-1" id="account-dropdown-toggle">
+        <i class="fas fa-user text-lg"></i>
+        <span></span>
+    </a>
+
+    <div id="account-dropdown-menu" class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg py-1 z-10 hidden group-hover:block">
+        <a href="account.php" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Profile</a>
+        <a href="logout.php" class="block px-4 py-2 text-red-600 hover:bg-red-50">Logout</a>
+    </div>
+</div>
                 <?php else: ?>
                     <a href="login.php" aria-label="Login" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
                         <i class="fas fa-user text-lg"></i>
@@ -291,12 +298,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 </a>
             </li>
             <li class="flex flex-col items-center justify-center py-1.5 w-full hover:text-indigo-900">
-                <a href="contact.php" aria-label="Message" class="flex flex-col items-center space-y-0.5 focus:outline-none">
-                    <i class="fas fa-comment-alt text-lg"></i>
-                    <span>Contact</span>
-                </a>
-            </li>
-            <li class="flex flex-col items-center justify-center py-1.5 w-full hover:text-indigo-900">
                 <a href="cart.php" aria-label="Cart" class="flex flex-col items-center space-y-0.5 focus:outline-none">
                     <i class="fas fa-shopping-cart text-lg"></i>
                     <span>Cart</span>
@@ -309,6 +310,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <span>Account</span>
                     </a>
                 </li>
+                <li class="flex flex-col items-center justify-center py-1.5 w-full hover:text-red-600 transition-colors duration-200">
+                <a href="logout.php" aria-label="Logout" class="flex flex-col items-center space-y-0.5 focus:outline-none">
+                    <i class="fas fa-sign-out-alt text-lg"></i>
+                    <span>Logout</span>
+                </a>
+            </li>
             <?php else: ?>
                 <li class="flex flex-col items-center justify-center py-1.5 w-full hover:text-indigo-900">
                     <a href="login.php" aria-label="Login" class="flex flex-col items-center space-y-0.5 focus:outline-none">

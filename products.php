@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once 'functions.php'; // Assuming this file contains your PDO connection ($pdo) and addToCart/addToWishlist functions
+require_once 'functions.php'; 
 
 // Ensure user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -112,7 +112,7 @@ if (isset($_GET['message']) && isset($_GET['type'])) {
 }
 
 // Define available categories (can be fetched dynamically from DB in a real app)
-$categories = ['All', 'Decor', 'Textiles', 'Food', 'Personal Care', 'Jewelry', 'Art']; // Added more for demonstration
+$categories = ['All', 'Decor', 'Textiles', 'Food', 'Personal Care'];
 
 // If it's an AJAX request, only output the product HTML and exit
 if ($is_ajax_request) {
@@ -137,33 +137,33 @@ if ($is_ajax_request) {
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #ebf5ff; /* Distinct background color for products page */
-            padding-top: 112px; /* Space for fixed header + categories */
-            padding-bottom: 56px; /* Space for fixed mobile bottom navigation */
+            background-color: #ebf5ff; 
+            padding-top: 112px; 
+            padding-bottom: 56px; 
         }
         /* Styling for individual product cards on the products page */
-        .product-card-products { /* Specific class for products page product cards */
-            transition: all 0.2s ease-in-out; /* Smooth transition for hover effects */
-            border-radius: 0.75rem; /* rounded-xl for slightly more rounded corners */
-            border: 2px solid #a78bfa; /* Border with a slightly different color (purple-400) */
-            padding: 0.75rem; /* p-3 for slightly more padding */
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* Larger shadow */
+        .product-card-products { 
+            transition: all 0.2s ease-in-out; 
+            border-radius: 0.75rem;
+            border: 2px solid #a78bfa;
+            padding: 0.75rem; /
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); 
         }
         .product-card-products:hover {
-            transform: scale(1.02); /* Slightly scale up on hover */
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* Even larger shadow */
-            border-color: #6366f1; /* Indigo-500 border on hover */
+            transform: scale(1.02); 
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); 
+            border-color: #6366f1;
         }
-        /* Custom scrollbar for horizontal categories on mobile */
+      
         .overflow-x-auto::-webkit-scrollbar {
-            height: 4px; /* Height of the scrollbar */
+            height: 4px;
         }
         .overflow-x-auto::-webkit-scrollbar-thumb {
-            background-color: #cbd5e0; /* Gray-300 color for the scrollbar thumb */
-            border-radius: 2px; /* Rounded corners for the thumb */
+            background-color: #cbd5e0;
+            border-radius: 2px; 
         }
         .overflow-x-auto::-webkit-scrollbar-track {
-            background-color: #f7fafc; /* Gray-50 color for the scrollbar track */
+            background-color: #f7fafc; 
         }
     </style>
 </head>
@@ -206,10 +206,17 @@ if ($is_ajax_request) {
                     <i class="fas fa-shopping-cart text-lg"></i>
                     <span></span>
                 </a>
-                <a href="account.php" aria-label="Account" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none rounded-md px-2 py-1">
-                    <i class="fas fa-user text-lg"></i>
-                    <span></span>
-                </a>
+                <div class="relative group">
+    <a href="#" aria-label="Account" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none rounded-md px-2 py-1" id="account-dropdown-toggle">
+        <i class="fas fa-user text-lg"></i>
+        <span></span>
+    </a>
+
+    <div id="account-dropdown-menu" class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg py-1 z-10 hidden group-hover:block">
+        <a href="account.php" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Profile</a>
+        <a href="logout.php" class="block px-4 py-2 text-red-600 hover:bg-red-50">Logout</a>
+    </div>
+</div>
             </div>
         </div>
         <nav class="sm:hidden flex flex-nowrap gap-3 text-xs font-semibold text-gray-600 justify-center border-t border-gray-200 py-2 overflow-x-auto px-4">
@@ -264,10 +271,7 @@ if ($is_ajax_request) {
         <?php else: ?>
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4" id="product-grid">
                 <?php
-                // Include product card template for each product on initial load
                 foreach ($products as $product) {
-                    // Pass a flag to the template to indicate this is the products page
-                    // This flag can be used inside product_card_template.php for conditional styling
                     $is_products_page = true; 
                     include 'product_card_template.php'; 
                 }
@@ -299,12 +303,6 @@ if ($is_ajax_request) {
                 </a>
             </li>
             <li class="flex flex-col items-center justify-center py-1.5 w-full hover:text-indigo-900 transition-colors duration-200">
-                <a href="contact.php" aria-label="Message" class="flex flex-col items-center space-y-0.5 focus:outline-none">
-                    <i class="fas fa-comment-alt text-lg"></i>
-                    <span>Contact</span>
-                </a>
-            </li>
-            <li class="flex flex-col items-center justify-center py-1.5 w-full hover:text-indigo-900 transition-colors duration-200">
                 <a href="cart.php" aria-label="Cart" class="flex flex-col items-center space-y-0.5 focus:outline-none">
                     <i class="fas fa-shopping-cart text-lg"></i>
                     <span>Cart</span>
@@ -314,6 +312,12 @@ if ($is_ajax_request) {
                 <a href="account.php" aria-label="Account" class="flex flex-col items-center space-y-0.5 focus:outline-none">
                     <i class="fas fa-user text-lg"></i>
                     <span>Account</span>
+                </a>
+            </li>
+            <li class="flex flex-col items-center justify-center py-1.5 w-full hover:text-red-600 transition-colors duration-200">
+                <a href="logout.php" aria-label="Logout" class="flex flex-col items-center space-y-0.5 focus:outline-none">
+                    <i class="fas fa-sign-out-alt text-lg"></i>
+                    <span>Logout</span>
                 </a>
             </li>
         </ul>
@@ -369,12 +373,12 @@ if ($is_ajax_request) {
             // Get current search and category parameters from URL
             const urlParams = new URLSearchParams(window.location.search);
             urlParams.set('offset', currentOffset);
-            urlParams.set('products_per_load', productsPerLoad); // Pass limit to PHP
+            urlParams.set('products_per_load', productsPerLoad); 
 
             try {
-                const response = await fetch(`products.php?${urlParams.toString()}`, { // Target this page itself
+                const response = await fetch(`products.php?${urlParams.toString()}`, { 
                     headers: {
-                        'X-Requested-With': 'XMLHttpRequest' // Identify as AJAX request
+                        'X-Requested-With': 'XMLHttpRequest' 
                     }
                 });
 
@@ -385,18 +389,17 @@ if ($is_ajax_request) {
                 const newProductsHtml = await response.text();
 
                 if (newProductsHtml.trim() === '') {
-                    // No more products returned
+                    
                     hasMoreProducts = false;
-                    endOfResults.classList.remove('hidden'); // Show "No more products" message
+                    endOfResults.classList.remove('hidden'); 
                 } else {
-                    // Append new products to the grid
+                  
                     const tempDiv = document.createElement('div');
                     tempDiv.innerHTML = newProductsHtml;
                     Array.from(tempDiv.children).forEach(child => {
                         productGrid.appendChild(child);
                     });
-                    currentOffset += productsPerLoad; // Update offset for next load
-                    // Re-evaluate hasMoreProducts based on totalProducts and currentOffset
+                    currentOffset += productsPerLoad; 
                     hasMoreProducts = currentOffset < totalProducts;
                     if (!hasMoreProducts) {
                          endOfResults.classList.remove('hidden');
@@ -404,31 +407,22 @@ if ($is_ajax_request) {
                 }
             } catch (error) {
                 console.error('Error loading more products:', error);
-                // Optionally display an error message to the user
+    
             } finally {
-                loadingIndicator.classList.add('hidden'); // Hide loading spinner
+                loadingIndicator.classList.add('hidden');
                 isLoading = false;
             }
         }
 
-        // Event listener for vertical scroll
         window.addEventListener('scroll', () => {
-            // Check if user has scrolled to the bottom of the page
-            if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) { // 500px buffer
+            
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) { 
                 loadMoreProducts();
             }
         });
-
-        // Initial check in case content is short and scrollbar doesn't appear
-        // or if there are already fewer products than can fill the screen
         if (hasMoreProducts && window.innerHeight >= document.body.offsetHeight) {
              loadMoreProducts();
         }
-
-        // --- Horizontal Scroll for Categories (already handled by Tailwind's overflow-x-auto) ---
-        // No specific JS needed unless you want custom scroll indicators or auto-scrolling.
-        // The `overflow-x-auto` class on the mobile categories nav handles this natively.
-        // You can add visual cues (e.g., shadows) with CSS if the content overflows.
     </script>
 </body>
 </html>

@@ -221,12 +221,6 @@ if (isset($_GET['message']) && isset($_GET['type'])) {
                     <span>Categories</span>
                 </a>
             </li>
-            <li class="flex flex-col items-center justify-center py-1.5 w-full hover:text-indigo-900 transition-colors duration-200">
-                <a href="contact.php" aria-label="Message" class="flex flex-col items-center space-y-0.5 focus:outline-none">
-                    <i class="fas fa-comment-alt text-lg"></i>
-                    <span>Contact</span>
-                </a>
-            </li>
             <li class="flex flex-col items-center justify-center py-1.5 w-full text-indigo-900 font-semibold transition-colors duration-200">
                 <a href="cart.php" aria-label="Cart" class="flex flex-col items-center space-y-0.5 focus:outline-none">
                     <i class="fas fa-shopping-cart text-lg"></i>
@@ -237,6 +231,12 @@ if (isset($_GET['message']) && isset($_GET['type'])) {
                 <a href="account.php" aria-label="Account" class="flex flex-col items-center space-y-0.5 focus:outline-none">
                     <i class="fas fa-user text-lg"></i>
                     <span>Account</span>
+                </a>
+            </li>
+            <li class="flex flex-col items-center justify-center py-1.5 w-full hover:text-red-600 transition-colors duration-200">
+                <a href="logout.php" aria-label="Logout" class="flex flex-col items-center space-y-0.5 focus:outline-none">
+                    <i class="fas fa-sign-out-alt text-lg"></i>
+                    <span>Logout</span>
                 </a>
             </li>
         </ul>
