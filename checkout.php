@@ -29,7 +29,7 @@ $stmt = $pdo->prepare("SELECT * FROM addresses WHERE user_id = ? LIMIT 1");
 $stmt->execute([$user_id]);
 $address = $stmt->fetch(PDO::FETCH_ASSOC);
 
-// Handle checkout (placeholder for now)
+// Handle checkout form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['place_order'])) {
     $street = filter_input(INPUT_POST, 'street', FILTER_SANITIZE_STRING);
     $city = filter_input(INPUT_POST, 'city', FILTER_SANITIZE_STRING);
@@ -39,13 +39,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['place_order'])) {
     $payment_method = filter_input(INPUT_POST, 'payment_method', FILTER_SANITIZE_STRING);
     $mpesa_phone_number = null;
 
+    // Validate M-Pesa phone number if selected
     if ($payment_method === 'mobile_money') {
         $mpesa_phone_number = filter_input(INPUT_POST, 'mpesa_phone_number', FILTER_SANITIZE_STRING);
         // Basic validation for M-Pesa number (e.g., starts with 07 or +2547, 9-12 digits)
-        if (!preg_match('/^(07|\+2547)\d{8}$/', $mpesa_phone_number)) {
-            // Handle invalid M-Pesa number, e.g., redirect back with an error message
-            // For now, we'll just set it to null if invalid. In a real app, you'd show an error.
-            $mpesa_phone_number = null; 
+        if (!preg_match('/^(07|\+2547)\d{8,12}$/', $mpesa_phone_number)) { // Added 8-12 digits for flexibility
+            $_SESSION['error_message'] = "Invalid M-Pesa phone number format. Please use a valid Safaricom number (e.g., 0712345678 or +254712345678).";
+            header("Location: checkout.php"); // Redirect back to checkout with error
+            exit();
         }
     }
 
@@ -59,8 +60,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['place_order'])) {
         'country' => $country
     ];
 
-    // Insert order
-    // You might want to store payment_method and mpesa_phone_number in the orders table
+    // Insert order into the database with a 'Pending' status and payment method details
+    // Ensure your 'orders' table has 'payment_method' and 'mpesa_phone_number' columns
     $stmt = $pdo->prepare("INSERT INTO orders (user_id, total, status, payment_method, mpesa_phone_number) VALUES (?, ?, ?, ?, ?)");
     $stmt->execute([$user_id, $total, 'Pending', $payment_method, $mpesa_phone_number]);
 
@@ -72,11 +73,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['place_order'])) {
         $stmt->execute([$order_id, $item['product_id'], $item['quantity'], $item['price']]);
     }
 
-    // Clear cart
+    // Clear cart (This is done here, but in a robust system, you might clear it after payment confirmation)
     $stmt = $pdo->prepare("DELETE FROM cart WHERE user_id = ?");
     $stmt->execute([$user_id]);
 
-    // Save or update address if new
+    // Save or update address if new or changed
     if (!$use_saved_address && !$address) {
         $stmt = $pdo->prepare("INSERT INTO addresses (user_id, street, city, state, postal_code, country) VALUES (?, ?, ?, ?, ?, ?)");
         $stmt->execute([$user_id, $address_to_use['street'], $address_to_use['city'], $address_to_use['state'], $address_to_use['postal_code'], $address_to_use['country']]);
@@ -85,8 +86,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['place_order'])) {
         $stmt->execute([$address_to_use['street'], $address_to_use['city'], $address_to_use['state'], $address_to_use['postal_code'], $address_to_use['country'], $user_id]);
     }
 
-    header("Location: order_confirmation.php?order_id=$order_id");
-    exit();
+    // --- REDIRECTION LOGIC BASED ON PAYMENT METHOD ---
+    if ($payment_method === 'mobile_money') {
+        // Store order ID in session for mpesa.php to pick up
+        $_SESSION['current_order_id'] = $order_id;
+        // mpesa.php will fetch total and phone number from the order record using this ID
+        header("Location: mpesa.php");
+        exit();
+    } else {
+        // Default redirection for other payment methods (e.g., credit card)
+        header("Location: order_confirmation.php?order_id=$order_id");
+        exit();
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -158,6 +169,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['place_order'])) {
 
     <main class="flex-grow max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-6 sm:pt-24 sm:pb-24">
         <h1 class="text-2xl font-semibold text-gray-900 mb-6">Checkout</h1>
+
+        <?php 
+        // Display error message if redirected from M-Pesa validation
+        if (isset($_SESSION['error_message'])): ?>
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                <strong class="font-bold">Error!</strong>
+                <span class="block sm:inline"><?php echo htmlspecialchars($_SESSION['error_message']); ?></span>
+                <?php unset($_SESSION['error_message']); // Clear the message after displaying ?>
+            </div>
+        <?php endif; ?>
 
         <?php if (empty($cart_items)): ?>
             <p class="text-gray-600 text-sm">Your cart is empty. <a href="index.php" class="text-indigo-600 hover:text-indigo-900">Continue shopping</a>.</p>
@@ -314,10 +335,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['place_order'])) {
                 const isDisabled = useSavedAddressCheckbox.checked;
                 addressInputs.forEach(input => {
                     input.disabled = isDisabled;
+                    // Toggle 'required' attribute based on disabled state
                     if (isDisabled) {
-                        input.removeAttribute('required'); // Remove required if disabled
+                        input.removeAttribute('required'); 
                     } else {
-                        input.setAttribute('required', 'required'); // Add required back if enabled
+                        input.setAttribute('required', 'required');
                     }
                 });
             }

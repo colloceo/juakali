@@ -140,19 +140,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <a class="hover:text-indigo-900" href="index.php?category=Personal Care">Personal Care</a>
             </nav>
             <div class="hidden sm:flex items-center space-x-6 flex-shrink-0 text-gray-600 text-sm">
-                <a href="cart.php" aria-label="Cart" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
+                <!-- <a href="cart.php" aria-label="Cart" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
                     <i class="fas fa-shopping-cart text-lg"></i>
                     <span>Cart</span>
-                </a>
+                </a> -->
                 <?php if ($is_logged_in): ?>
-                    <a href="profile.php" aria-label="Account" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
-                        <i class="fas fa-user text-lg"></i>
-                        <span>Account</span>
-                    </a>
-                    <a href="logout.php" aria-label="Logout" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
-                        <i class="fas fa-sign-out-alt text-lg"></i>
-                        <span>Logout</span>
-                    </a>
+                    <a href="index-after-login.php" aria-label="Home" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
+                    <i class="fas fa-home text-lg"></i>
+                    <span></span>
+                </a>
+                <a href="products.php" aria-label="Store" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
+                    <i class="fas fa-store text-lg"></i>
+                    <span></span>
+                </a>
+                <a href="cart.php" aria-label="Cart" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
+                    <i class="fas fa-shopping-cart text-lg"></i>
+                    <span></span>
+                </a>
+                <a href="account.php" aria-label="Account" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
+                    <i class="fas fa-user text-lg"></i>
+                    <span></span>
+                </a>
                 <?php else: ?>
                     <a href="login.php" aria-label="Login" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
                         <i class="fas fa-user text-lg"></i>

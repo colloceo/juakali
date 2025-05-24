@@ -83,19 +83,23 @@ $related_products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <a class="hover:text-indigo-900" href="index.php?category=Personal Care">Personal Care</a>
             </nav>
             <div class="hidden sm:flex items-center space-x-6 flex-shrink-0 text-gray-600 text-sm">
+                <?php if ($is_logged_in): ?>
+                    <a href="index-after-login.php" aria-label="Home" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
+                    <i class="fas fa-home text-lg"></i>
+                    <span></span>
+                </a>
+                <a href="products.php" aria-label="Store" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
+                    <i class="fas fa-store text-lg"></i>
+                    <span></span>
+                </a>
                 <a href="cart.php" aria-label="Cart" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
                     <i class="fas fa-shopping-cart text-lg"></i>
-                    <span>Cart</span>
+                    <span></span>
                 </a>
-                <?php if ($is_logged_in): ?>
-                    <a href="profile.php" aria-label="Account" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
-                        <i class="fas fa-user text-lg"></i>
-                        <span>Account</span>
-                    </a>
-                    <a href="logout.php" aria-label="Logout" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
-                        <i class="fas fa-sign-out-alt text-lg"></i>
-                        <span>Logout</span>
-                    </a>
+                <a href="account.php" aria-label="Account" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
+                    <i class="fas fa-user text-lg"></i>
+                    <span></span>
+                </a>
                 <?php else: ?>
                     <a href="login.php" aria-label="Login" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
                         <i class="fas fa-user text-lg"></i>
@@ -128,17 +132,17 @@ $related_products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <div class="flex space-x-4">
                     <?php if ($is_logged_in): ?>
                         <a href="cart.php?action=add&product_id=<?php echo $product['id']; ?>" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-                            <i class="fas fa-shopping-cart mr-2"></i>Add to Cart
+                            <i class="fas fa-shopping-cart mr-2"></i><!--Add to Cart-->
                         </a>
                         <a href="wishlist.php?action=add&product_id=<?php echo $product['id']; ?>" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
-                            <i class="fas fa-heart mr-2"></i>Add to Wishlist
+                            <i class="fas fa-heart mr-2"></i><!--Add to Wishlist-->
                         </a>
                     <?php else: ?>
                         <a href="login.php?redirect=cart&product_id=<?php echo $product['id']; ?>" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-                            <i class="fas fa-shopping-cart mr-2"></i>Add to Cart
+                            <i class="fas fa-shopping-cart mr-2"></i><!--Add to Cart-->
                         </a>
                         <a href="login.php?redirect=wishlist&product_id=<?php echo $product['id']; ?>" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
-                            <i class="fas fa-heart mr-2"></i>Add to Wishlist
+                            <i class="fas fa-heart mr-2"></i><!--Add to Wishlist-->
                         </a>
                     <?php endif; ?>
                 </div>

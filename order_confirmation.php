@@ -69,15 +69,15 @@ if (!$order) {
             <div class="hidden sm:flex items-center space-x-6 flex-shrink-0 text-gray-600 text-sm">
                 <a href="cart.php" aria-label="Cart" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
                     <i class="fas fa-shopping-cart text-lg"></i>
-                    <span>Cart</span>
+                    <span></span>
                 </a>
                 <a href="profile.php" aria-label="Account" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
                     <i class="fas fa-user text-lg"></i>
-                    <span>Account</span>
-                </a>
+                    <span></span>
+                <!-- </a>
                 <a href="logout.php" aria-label="Logout" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
                     <i class="fas fa-sign-out-alt text-lg"></i>
-                    <span>Logout</span>
+                    <span>Logout</span> -->
                 </a>
             </div>
         </div>
