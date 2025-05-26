@@ -1,33 +1,25 @@
 <?php
-// This file contains the HTML structure for a single product card.
-// It is designed to be included by products.php and index-after-login.php.
-// It expects the $product variable to be available in its scope, containing product details.
-// It can also receive an optional $is_products_page boolean to apply conditional styling.
 
-// Determine badge based on product attributes
 $badge = '';
 $badge_class = '';
 $quantity = isset($product['quantity']) ? (int)$product['quantity'] : 0;
-// Check if 'created_at' exists and is a valid date string before using strtotime
 $created_at_timestamp = isset($product['created_at']) ? strtotime($product['created_at']) : 0;
 $price = isset($product['price']) ? (float)$product['price'] : 0;
 
 if ($quantity <= 0) {
     $badge = 'Sold Out';
     $badge_class = 'bg-red-600 text-white';
-} elseif ($created_at_timestamp > strtotime('-14 days')) { // 'New' for products added in last 14 days
+} elseif ($created_at_timestamp > strtotime('-14 days')) {
     $badge = 'New';
     $badge_class = 'bg-green-600 text-white';
-} elseif ($price < 50 && $price > 0) { // 'Sale' for products under KES 50
+} elseif ($price < 50 && $price > 0) {
     $badge = 'Sale';
     $badge_class = 'bg-indigo-700 text-white';
 } else {
-    $badge = 'Hot'; // Default badge if no other conditions met
+    $badge = 'Hot';
     $badge_class = 'bg-yellow-400 text-gray-900';
 }
 
-// Determine the base class for the product card based on the calling page
-// The $is_products_page variable is passed from products.php
 $card_base_class = isset($is_products_page) && $is_products_page ? 'product-card-products' : 'product-card-home';
 ?>
 <div class="<?php echo htmlspecialchars($card_base_class); ?> relative flex flex-col items-center" onclick="window.location.href='product_details.php?id=<?php echo htmlspecialchars($product['id']); ?>'">

@@ -83,6 +83,22 @@ if (isset($_GET['message']) && isset($_GET['type'])) {
     $feedback_message = htmlspecialchars($_GET['message']);
     $feedback_type = htmlspecialchars($_GET['type']);
 }
+
+// --- START: Fetch cart item count for the navigation bar ---
+$cart_item_count = 0;
+try {
+    $stmt = $pdo->prepare("SELECT SUM(quantity) AS total_quantity FROM cart WHERE user_id = ?");
+    $stmt->execute([$user_id]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($result && $result['total_quantity'] !== null) {
+        $cart_item_count = (int)$result['total_quantity'];
+    }
+} catch (PDOException $e) {
+    error_log("Error fetching cart item count for navigation: " . $e->getMessage());
+    $cart_item_count = 0; // Default to 0 if there's an error
+}
+// --- END: Fetch cart item count ---
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -121,14 +137,25 @@ if (isset($_GET['message']) && isset($_GET['type'])) {
                     <i class="fas fa-store text-lg"></i>
                     <span></span>
                 </a>
-                <a href="cart.php" aria-label="Cart" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none rounded-md px-2 py-1">
+                <a href="cart.php" aria-label="Cart" class="relative flex items-center space-x-1 hover:text-indigo-900 focus:outline-none rounded-md px-2 py-1">
                     <i class="fas fa-shopping-cart text-lg"></i>
+                    <?php if ($cart_item_count > 0): ?>
+                        <span class="absolute -top-2 -right-2 bg-red-600 text-white rounded-full text-xs px-2 py-1 flex items-center justify-center min-w-[1.5rem] h-[1.5rem] leading-none">
+                            <?php echo $cart_item_count; ?>
+                        </span>
+                    <?php endif; ?>
                     <span></span>
                 </a>
-                <a href="account.php" aria-label="Account" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none rounded-md px-2 py-1">
-                    <i class="fas fa-user text-lg"></i>
-                    <span></span>
-                </a>
+                <div class="relative">
+                    <a href="#" aria-label="Account" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none rounded-md px-2 py-1" id="account-dropdown-toggle">
+                        <i class="fas fa-user text-lg"></i>
+                        <span></span>
+                    </a>
+                    <div id="account-dropdown-menu" class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg py-1 z-10 hidden">
+                        <a href="account.php" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Profile</a>
+                        <a href="logout.php" class="block px-4 py-2 text-red-600 hover:bg-red-50">Logout</a>
+                    </div>
+                </div>
             </nav>
         </div>
     </header>
@@ -222,8 +249,13 @@ if (isset($_GET['message']) && isset($_GET['type'])) {
                 </a>
             </li>
             <li class="flex flex-col items-center justify-center py-1.5 w-full text-indigo-900 font-semibold transition-colors duration-200">
-                <a href="cart.php" aria-label="Cart" class="flex flex-col items-center space-y-0.5 focus:outline-none">
+                <a href="cart.php" aria-label="Cart" class="relative flex flex-col items-center space-y-0.5 focus:outline-none">
                     <i class="fas fa-shopping-cart text-lg"></i>
+                    <?php if ($cart_item_count > 0): ?>
+                        <span class="absolute -top-1 -right-1 bg-red-600 text-white rounded-full text-xs px-1.5 py-0.5 flex items-center justify-center min-w-[1.25rem] h-[1.25rem] leading-none">
+                            <?php echo $cart_item_count; ?>
+                        </span>
+                    <?php endif; ?>
                     <span>Cart</span>
                 </a>
             </li>
@@ -254,5 +286,26 @@ if (isset($_GET['message']) && isset($_GET['type'])) {
             </div>
         </div>
     </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropdownToggle = document.getElementById('account-dropdown-toggle');
+            const dropdownMenu = document.getElementById('account-dropdown-menu');
+
+            if (dropdownToggle && dropdownMenu) {
+                dropdownToggle.addEventListener('click', function(event) {
+                    event.preventDefault(); // Prevent the default link behavior
+                    dropdownMenu.classList.toggle('hidden');
+                });
+
+                // Close the dropdown if the user clicks outside of it
+                document.addEventListener('click', function(event) {
+                    if (!dropdownToggle.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                        dropdownMenu.classList.add('hidden');
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>

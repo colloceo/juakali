@@ -25,12 +25,15 @@ $stmt = $pdo->prepare("SELECT * FROM orders WHERE user_id = ? ORDER BY created_a
 $stmt->execute([$user_id]);
 $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Debugging: Uncomment the line below to see the full orders data being fetched
+// echo '<pre>'; print_r($orders); echo '</pre>';
+
 // Fetch user wishlist items
 // This assumes you have a 'wishlist' table with 'user_id' and 'product_id'
 // and a 'products' table with 'id', 'name', 'price', and 'image_url'.
 $wishlist_items = [];
 try {
-    $stmt = $pdo->prepare("SELECT p.id, p.name, p.price, p.image_url FROM wishlist w JOIN products p ON w.product_id = p.id WHERE w.user_id = ? ORDER BY w.added_at DESC");
+    $stmt = $pdo->prepare("SELECT p.id, p.name, p.price, p.image_url FROM wishlist w JOIN products p ON w.product_id = p.id WHERE w.user_id = ? ORDER BY w.created_at DESC");
     $stmt->execute([$user_id]);
     $wishlist_items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
@@ -40,6 +43,25 @@ try {
     error_log("Error fetching wishlist items: " . $e->getMessage());
     $wishlist_items = []; // Ensure it's an empty array if there's an error
 }
+
+// Uncomment the line below for debugging wishlist items:
+// echo "<pre>Wishlist Items for User ID {$user_id}: " . print_r($wishlist_items, true) . "</pre>";
+
+
+// --- START: Fetch cart item count for the navigation bar ---
+$cart_item_count = 0;
+try {
+    $stmt = $pdo->prepare("SELECT SUM(quantity) AS total_quantity FROM cart WHERE user_id = ?");
+    $stmt->execute([$user_id]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($result && $result['total_quantity'] !== null) {
+        $cart_item_count = (int)$result['total_quantity'];
+    }
+} catch (PDOException $e) {
+    error_log("Error fetching cart item count for navigation: " . $e->getMessage());
+    $cart_item_count = 0; // Default to 0 if there's an error
+}
+// --- END: Fetch cart item count ---
 
 
 // Handle profile update
@@ -120,21 +142,25 @@ $user_last_name = $user_name_parts[1] ?? '';
                     <i class="fas fa-store text-lg"></i>
                     <span></span>
                 </a>
-                <a href="cart.php" aria-label="Cart" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none rounded-md px-2 py-1">
+                <a href="cart.php" aria-label="Cart" class="relative flex items-center space-x-1 hover:text-indigo-900 focus:outline-none rounded-md px-2 py-1">
                     <i class="fas fa-shopping-cart text-lg"></i>
+                    <?php if ($cart_item_count > 0): ?>
+                        <span class="absolute -top-2 -right-2 bg-red-600 text-white rounded-full text-xs px-2 py-1 flex items-center justify-center min-w-[1.5rem] h-[1.5rem] leading-none">
+                            <?php echo $cart_item_count; ?>
+                        </span>
+                    <?php endif; ?>
                     <span></span>
                 </a>
-                 <div class="relative group">
-    <a href="#" aria-label="Account" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none rounded-md px-2 py-1" id="account-dropdown-toggle">
-        <i class="fas fa-user text-lg"></i>
-        <span></span>
-    </a>
-
-    <div id="account-dropdown-menu" class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg py-1 z-10 hidden group-hover:block">
-        <a href="account.php" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Profile</a>
-        <a href="logout.php" class="block px-4 py-2 text-red-600 hover:bg-red-50">Logout</a>
-    </div>
-</div>
+                <div class="relative">
+                    <a href="#" aria-label="Account" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none rounded-md px-2 py-1" id="account-dropdown-toggle">
+                        <i class="fas fa-user text-lg"></i>
+                        <span></span>
+                    </a>
+                    <div id="account-dropdown-menu" class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg py-1 z-10 hidden">
+                        <a href="account.php" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Profile</a>
+                        <a href="logout.php" class="block px-4 py-2 text-red-600 hover:bg-red-50">Logout</a>
+                    </div>
+                </div>
             </nav>
         </div>
     </header>
@@ -211,17 +237,22 @@ $user_last_name = $user_name_parts[1] ?? '';
                                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600"><?php echo date('M d, Y', strtotime($order['created_at'])); ?></td>
                                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">KES <?php echo number_format($order['total'], 2); ?></td>
                                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                                                <?php
-                                                    switch ($order['status']) {
-                                                        case 'Pending': echo 'bg-yellow-100 text-yellow-800'; break;
-                                                        case 'Processing': echo 'bg-blue-100 text-blue-800'; break;
-                                                        case 'Completed': echo 'bg-green-100 text-green-800'; break;
-                                                        case 'Cancelled': echo 'bg-red-100 text-red-800'; break;
-                                                        default: echo 'bg-gray-100 text-gray-800'; break;
-                                                    }
-                                                ?>">
-                                                <?php echo htmlspecialchars($order['status']); ?>
+                                            <?php
+                                            // Get the status text, default to 'N/A' if empty or null
+                                            $status_text = htmlspecialchars($order['status'] ?? 'N/A');
+                                            $status_class = 'bg-gray-100 text-gray-800'; // Default class for unknown/N/A status
+
+                                            // Apply specific classes based on status
+                                            switch ($order['status']) {
+                                                case 'Pending': $status_class = 'bg-yellow-100 text-yellow-800'; break;
+                                                case 'Processing': $status_class = 'bg-blue-100 text-blue-800'; break;
+                                                case 'Completed': $status_class = 'bg-green-100 text-green-800'; break;
+                                                case 'Cancelled': $status_class = 'bg-red-100 text-red-800'; break;
+                                                // No default case needed here, as $status_class is already initialized for default
+                                            }
+                                            ?>
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo $status_class; ?>">
+                                                <?php echo $status_text; ?>
                                             </span>
                                         </td>
                                     </tr>
@@ -274,14 +305,27 @@ $user_last_name = $user_name_parts[1] ?? '';
                 <?php else: ?>
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         <?php foreach ($wishlist_items as $item): ?>
-                            <div class="border border-gray-200 rounded-lg p-4 flex flex-col items-center text-center transition-shadow duration-200 hover:shadow-md">
+                            <a href="product_detail.php?id=<?php echo htmlspecialchars($item['id']); ?>" class="block border border-gray-200 rounded-lg p-4 flex flex-col items-center text-center transition-shadow duration-200 hover:shadow-md hover:border-indigo-400">
                                 <img src="<?php echo htmlspecialchars($item['image_url'] ?? 'https://via.placeholder.com/150/f3f4f6/6b7280?text=No+Image'); ?>" alt="<?php echo htmlspecialchars($item['name']); ?>" class="w-32 h-32 object-cover rounded-md mb-3 border border-gray-100">
                                 <h3 class="text-base font-semibold text-gray-900 mb-1 truncate w-full px-2"><?php echo htmlspecialchars($item['name']); ?></h3>
                                 <p class="text-gray-700 text-sm font-medium mb-3">KES <?php echo number_format($item['price'], 2); ?></p>
-                                <a href="product_detail.php?id=<?php echo htmlspecialchars($item['id']); ?>" class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
-                                    View Product
-                                </a>
-                            </div>
+
+                                <form action="add_to_cart.php" method="POST" class="w-full mt-auto">
+                                    <input type="hidden" name="product_id" value="<?php echo htmlspecialchars($item['id']); ?>">
+                                    <input type="hidden" name="quantity" value="1">
+                                    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-md text-sm font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-1 transition duration-150 ease-in-out">
+                                        Add to Cart
+                                    </button>
+                                </form>
+
+                                <form action="checkout.php" method="POST" class="w-full mt-2">
+                                    <input type="hidden" name="product_id" value="<?php echo htmlspecialchars($item['id']); ?>">
+                                    <input type="hidden" name="quantity" value="1">
+                                    <button type="submit" class="w-full bg-green-600 text-white py-2 rounded-md text-sm font-semibold hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-1 transition duration-150 ease-in-out">
+                                        Buy Now
+                                    </button>
+                                </form>
+                            </a>
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
@@ -304,30 +348,29 @@ $user_last_name = $user_name_parts[1] ?? '';
                     <span>Categories</span>
                 </a>
             </li>
-            <!-- <li class="flex flex-col items-center justify-center py-1.5 w-full hover:text-indigo-900 transition-colors duration-200">
-                <a href="contact.php" aria-label="Message" class="flex flex-col items-center space-y-0.5 focus:outline-none">
-                    <i class="fas fa-comment-alt text-lg"></i>
-                    <span>Contact</span>
-                </a>
-            </li> -->
-            <li class="flex flex-col items-center justify-center py-1.5 w-full hover:text-indigo-900 transition-colors duration-200">
-                <a href="cart.php" aria-label="Cart" class="flex flex-col items-center space-y-0.5 focus:outline-none">
+            <li class="flex flex-col items-center justify-center py-1.5 w-full text-indigo-900 font-semibold transition-colors duration-200">
+                <a href="cart.php" aria-label="Cart" class="relative flex flex-col items-center space-y-0.5 focus:outline-none">
                     <i class="fas fa-shopping-cart text-lg"></i>
+                    <?php if ($cart_item_count > 0): ?>
+                        <span class="absolute -top-1 -right-1 bg-red-600 text-white rounded-full text-xs px-1.5 py-0.5 flex items-center justify-center min-w-[1.25rem] h-[1.25rem] leading-none">
+                            <?php echo $cart_item_count; ?>
+                        </span>
+                    <?php endif; ?>
                     <span>Cart</span>
                 </a>
             </li>
-            <li class="flex flex-col items-center justify-center py-1.5 w-full text-indigo-900 font-semibold transition-colors duration-200">
+            <li class="flex flex-col items-center justify-center py-1.5 w-full hover:text-indigo-900 transition-colors duration-200">
                 <a href="account.php" aria-label="Account" class="flex flex-col items-center space-y-0.5 focus:outline-none">
                     <i class="fas fa-user text-lg"></i>
                     <span>Account</span>
                 </a>
             </li>
-            <!-- <li class="flex flex-col items-center justify-center py-1.5 w-full hover:text-red-600 transition-colors duration-200">
+            <li class="flex flex-col items-center justify-center py-1.5 w-full hover:text-red-600 transition-colors duration-200">
                 <a href="logout.php" aria-label="Logout" class="flex flex-col items-center space-y-0.5 focus:outline-none">
                     <i class="fas fa-sign-out-alt text-lg"></i>
                     <span>Logout</span>
                 </a>
-            </li> -->
+            </li>
         </ul>
     </nav>
 
@@ -337,11 +380,32 @@ $user_last_name = $user_name_parts[1] ?? '';
                 © <?php echo date("Y"); ?> JuaKali
             </div>
             <div class="space-x-3">
-                <a class="hover:text-indigo-900 transition-colors duration-200" href="privacy.php">Privacy</a>
-                <a class="hover:text-indigo-900 transition-colors duration-200" href="terms.php">Terms</a>
-                <a class="hover:text-indigo-900 transition-colors duration-200" href="contact.php">Contact</a>
+                <a class="hover:text-indigo-900" href="privacy.php">Privacy</a>
+                <a class="hover:text-indigo-900" href="terms.php">Terms</a>
+                <a class="hover:text-indigo-900" href="contact.php">Contact</a>
             </div>
         </div>
     </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropdownToggle = document.getElementById('account-dropdown-toggle');
+            const dropdownMenu = document.getElementById('account-dropdown-menu');
+
+            if (dropdownToggle && dropdownMenu) {
+                dropdownToggle.addEventListener('click', function(event) {
+                    event.preventDefault(); // Prevent the default link behavior
+                    dropdownMenu.classList.toggle('hidden');
+                });
+
+                // Close the dropdown if the user clicks outside of it
+                document.addEventListener('click', function(event) {
+                    if (!dropdownToggle.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                        dropdownMenu.classList.add('hidden');
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>

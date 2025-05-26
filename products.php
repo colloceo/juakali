@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once 'functions.php'; 
+require_once 'functions.php';
 
 // Ensure user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -64,6 +64,7 @@ $stmt_products = $pdo->prepare($sql_products_query);
 $stmt_products->execute($params); // Execute with only the WHERE clause parameters
 $products = $stmt_products->fetchAll(PDO::FETCH_ASSOC);
 
+
 // Calculate the range of products being displayed for the "Showing X-Y of Z results" text
 $start_product_index = $offset + 1;
 $end_product_index = $offset + count($products);
@@ -114,12 +115,29 @@ if (isset($_GET['message']) && isset($_GET['type'])) {
 // Define available categories (can be fetched dynamically from DB in a real app)
 $categories = ['All', 'Decor', 'Textiles', 'Food', 'Personal Care'];
 
+
+// --- START: Fetch cart item count for the navigation bar ---
+$cart_item_count = 0;
+try {
+    $stmt = $pdo->prepare("SELECT SUM(quantity) AS total_quantity FROM cart WHERE user_id = ?");
+    $stmt->execute([$user_id]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($result && $result['total_quantity'] !== null) {
+        $cart_item_count = (int)$result['total_quantity'];
+    }
+} catch (PDOException $e) {
+    error_log("Error fetching cart item count for navigation: " . $e->getMessage());
+    $cart_item_count = 0; // Default to 0 if there's an error
+}
+// --- END: Fetch cart item count ---
+
 // If it's an AJAX request, only output the product HTML and exit
 if ($is_ajax_request) {
     foreach ($products as $product) {
         // Include the product card template for each product
         // We can pass a flag here if product_card_template needs to render differently
-        include 'product_card_template.php'; 
+        $is_products_page = true; // Ensure the template knows it's being called from products.php
+        include 'product_card_template.php';
     }
     exit(); // Terminate script execution after sending product HTML
 }
@@ -137,33 +155,33 @@ if ($is_ajax_request) {
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #ebf5ff; 
-            padding-top: 112px; 
-            padding-bottom: 56px; 
+            background-color: #ebf5ff;
+            padding-top: 112px;
+            padding-bottom: 56px;
         }
         /* Styling for individual product cards on the products page */
-        .product-card-products { 
-            transition: all 0.2s ease-in-out; 
+        .product-card-products {
+            transition: all 0.2s ease-in-out;
             border-radius: 0.75rem;
             border: 2px solid #a78bfa;
-            padding: 0.75rem; /
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); 
+            padding: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
         .product-card-products:hover {
-            transform: scale(1.02); 
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); 
+            transform: scale(1.02);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
             border-color: #6366f1;
         }
-      
+
         .overflow-x-auto::-webkit-scrollbar {
             height: 4px;
         }
         .overflow-x-auto::-webkit-scrollbar-thumb {
             background-color: #cbd5e0;
-            border-radius: 2px; 
+            border-radius: 2px;
         }
         .overflow-x-auto::-webkit-scrollbar-track {
-            background-color: #f7fafc; 
+            background-color: #f7fafc;
         }
     </style>
 </head>
@@ -202,21 +220,26 @@ if ($is_ajax_request) {
                     <i class="fas fa-store text-lg"></i>
                     <span></span>
                 </a>
-                <a href="cart.php" aria-label="Cart" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none rounded-md px-2 py-1">
+                 <a href="cart.php" aria-label="Cart" class="relative flex items-center space-x-1 hover:text-indigo-900 focus:outline-none rounded-md px-2 py-1">
                     <i class="fas fa-shopping-cart text-lg"></i>
+                    <?php if ($cart_item_count > 0): ?>
+                        <span class="absolute -top-2 -right-2 bg-red-600 text-white rounded-full text-xs px-2 py-1 flex items-center justify-center min-w-[1.5rem] h-[1.5rem] leading-none">
+                            <?php echo $cart_item_count; ?>
+                        </span>
+                    <?php endif; ?>
                     <span></span>
                 </a>
-                <div class="relative group">
-    <a href="#" aria-label="Account" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none rounded-md px-2 py-1" id="account-dropdown-toggle">
-        <i class="fas fa-user text-lg"></i>
-        <span></span>
-    </a>
+                <div class="relative">
+                    <a href="#" aria-label="Account" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none rounded-md px-2 py-1" id="account-dropdown-toggle">
+                        <i class="fas fa-user text-lg"></i>
+                        <span></span>
+                    </a>
 
-    <div id="account-dropdown-menu" class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg py-1 z-10 hidden group-hover:block">
-        <a href="account.php" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Profile</a>
-        <a href="logout.php" class="block px-4 py-2 text-red-600 hover:bg-red-50">Logout</a>
-    </div>
-</div>
+                    <div id="account-dropdown-menu" class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg py-1 z-10 hidden">
+                        <a href="account.php" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Profile</a>
+                        <a href="logout.php" class="block px-4 py-2 text-red-600 hover:bg-red-50">Logout</a>
+                    </div>
+                </div>
             </div>
         </div>
         <nav class="sm:hidden flex flex-nowrap gap-3 text-xs font-semibold text-gray-600 justify-center border-t border-gray-200 py-2 overflow-x-auto px-4">
@@ -272,8 +295,8 @@ if ($is_ajax_request) {
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4" id="product-grid">
                 <?php
                 foreach ($products as $product) {
-                    $is_products_page = true; 
-                    include 'product_card_template.php'; 
+                    $is_products_page = true;
+                    include 'product_card_template.php';
                 }
                 ?>
             </div>
@@ -373,12 +396,12 @@ if ($is_ajax_request) {
             // Get current search and category parameters from URL
             const urlParams = new URLSearchParams(window.location.search);
             urlParams.set('offset', currentOffset);
-            urlParams.set('products_per_load', productsPerLoad); 
+            urlParams.set('products_per_load', productsPerLoad);
 
             try {
-                const response = await fetch(`products.php?${urlParams.toString()}`, { 
+                const response = await fetch(`products.php?${urlParams.toString()}`, {
                     headers: {
-                        'X-Requested-With': 'XMLHttpRequest' 
+                        'X-Requested-With': 'XMLHttpRequest'
                     }
                 });
 
@@ -389,17 +412,15 @@ if ($is_ajax_request) {
                 const newProductsHtml = await response.text();
 
                 if (newProductsHtml.trim() === '') {
-                    
                     hasMoreProducts = false;
-                    endOfResults.classList.remove('hidden'); 
+                    endOfResults.classList.remove('hidden');
                 } else {
-                  
                     const tempDiv = document.createElement('div');
                     tempDiv.innerHTML = newProductsHtml;
                     Array.from(tempDiv.children).forEach(child => {
                         productGrid.appendChild(child);
                     });
-                    currentOffset += productsPerLoad; 
+                    currentOffset += productsPerLoad;
                     hasMoreProducts = currentOffset < totalProducts;
                     if (!hasMoreProducts) {
                          endOfResults.classList.remove('hidden');
@@ -407,7 +428,6 @@ if ($is_ajax_request) {
                 }
             } catch (error) {
                 console.error('Error loading more products:', error);
-    
             } finally {
                 loadingIndicator.classList.add('hidden');
                 isLoading = false;
@@ -415,14 +435,33 @@ if ($is_ajax_request) {
         }
 
         window.addEventListener('scroll', () => {
-            
-            if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) { 
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
                 loadMoreProducts();
             }
         });
         if (hasMoreProducts && window.innerHeight >= document.body.offsetHeight) {
              loadMoreProducts();
         }
+
+        // Account Dropdown Click Behavior Script
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropdownToggle = document.getElementById('account-dropdown-toggle');
+            const dropdownMenu = document.getElementById('account-dropdown-menu');
+
+            if (dropdownToggle && dropdownMenu) {
+                dropdownToggle.addEventListener('click', function(event) {
+                    event.preventDefault(); // Prevent the default link behavior
+                    dropdownMenu.classList.toggle('hidden');
+                });
+
+                // Close the dropdown if the user clicks outside of it
+                document.addEventListener('click', function(event) {
+                    if (!dropdownToggle.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                        dropdownMenu.classList.add('hidden');
+                    }
+                });
+            }
+        });
     </script>
 </body>
 </html>
