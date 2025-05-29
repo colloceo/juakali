@@ -57,11 +57,6 @@ $products = $pdo->query("SELECT * FROM products WHERE status = 'Approved' LIMIT 
                 <a class="hover:text-indigo-900" href="index-before-login.php?category=Personal Care">Personal Care</a>
             </nav>
             <!-- Cart and Account -->
-            <div class="hidden sm:flex items-center space-x-6 flex-shrink-0 text-gray-600 text-sm">
-                <a href="cart.php" aria-label="Cart" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
-                    <i class="fas fa-shopping-cart text-lg"></i>
-                    <span>Cart</span>
-                </a>
                 <a href="login.php" aria-label="Account" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none">
                     <i class="fas fa-user text-lg"></i>
                     <span>Login</span>

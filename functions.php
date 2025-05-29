@@ -267,7 +267,7 @@ function addToWishlist($user_id, $product_id) {
         $stmt = $pdo->prepare("INSERT INTO wishlist (user_id, product_id) VALUES (?, ?)");
         return $stmt->execute([$user_id, $product_id]);
     }
-    return true; // Already in wishlist
+    return true;
 }
 
 function removeFromWishlist($user_id, $product_id) {
@@ -281,6 +281,122 @@ function getWishlistItems($user_id) {
     $stmt = $pdo->prepare("SELECT w.*, p.name, p.price FROM wishlist w JOIN products p ON w.product_id = p.id WHERE w.user_id = ?");
     $stmt->execute([$user_id]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function getProductById($productId) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT * FROM products WHERE id = ?");
+    $stmt->execute([$productId]);
+    return $stmt->fetch();
+}
+
+function updateProduct($productId, $name, $description, $price, $category, $image_url) {
+    global $pdo;
+    try {
+        $stmt = $pdo->prepare("UPDATE products SET name = ?, description = ?, price = ?, category = ?, image_url = ? WHERE id = ?");
+        return $stmt->execute([$name, $description, $price, $category, $image_url, $productId]);
+    } catch (PDOException $e) {
+        error_log("Product update error: " . $e->getMessage());
+        return false;
+    }
+}
+
+function deleteProduct($productId) {
+    global $pdo;
+    try {
+        $stmt = $pdo->prepare("DELETE FROM products WHERE id = ?");
+        return $stmt->execute([$productId]);
+    } catch (PDOException $e) {
+        error_log("Product deletion error: " . $e->getMessage());
+        return false;
+    }
+}
+
+function getArtisanOrdersDetailed($artisanId) {
+    global $pdo;
+    $stmt = $pdo->prepare("
+        SELECT
+            o.id AS order_id,
+            o.created_at AS order_date,
+            o.total,
+            o.payment_status,
+            o.delivery_option,
+            o.status AS order_status, -- Assuming 'status' column exists in orders table
+            o.tracking_number,        -- Assuming 'tracking_number' column exists in orders table
+            u.name AS customer_name,
+            u.email AS customer_email,
+            a.street,
+            a.city,
+            a.state,
+            a.postal_code,
+            a.country,
+            GROUP_CONCAT(CONCAT(oi.quantity, ' x ', p.name) SEPARATOR '; ') AS products_summary
+        FROM orders o
+        JOIN order_items oi ON o.id = oi.order_id
+        JOIN products p ON oi.product_id = p.id
+        JOIN users u ON o.user_id = u.id
+        LEFT JOIN addresses a ON u.id = a.user_id -- LEFT JOIN to include orders even if address is missing
+        WHERE p.artisan_id = ?
+        GROUP BY o.id
+        ORDER BY o.created_at DESC
+    ");
+    $stmt->execute([$artisanId]);
+    return $stmt->fetchAll();
+}
+
+function updateOrderStatus($orderId, $status) {
+    global $pdo;
+    try {
+        $stmt = $pdo->prepare("UPDATE orders SET status = ? WHERE id = ?");
+        return $stmt->execute([$status, $orderId]);
+    } catch (PDOException $e) {
+        error_log("Order status update error: " . $e->getMessage());
+        return false;
+    }
+}
+
+function updateOrderTracking($orderId, $trackingNumber) {
+    global $pdo;
+    try {
+        $stmt = $pdo->prepare("UPDATE orders SET tracking_number = ? WHERE id = ?");
+        return $stmt->execute([$trackingNumber, $orderId]);
+    } catch (PDOException $e) {
+        error_log("Order tracking update error: " . $e->getMessage());
+        return false;
+    }
+}
+
+function getArtisanProductReviews($artisanId) {
+    global $pdo;
+    $stmt = $pdo->prepare("
+        SELECT
+            r.id AS review_id,
+            r.rating,
+            r.comment,
+            r.created_at AS review_date,
+            r.artisan_response, -- Assuming this column exists
+            u.name AS customer_name,
+            p.name AS product_name,
+            p.id AS product_id
+        FROM ratings r
+        JOIN products p ON r.product_id = p.id
+        JOIN users u ON r.user_id = u.id
+        WHERE p.artisan_id = ?
+        ORDER BY r.created_at DESC
+    ");
+    $stmt->execute([$artisanId]);
+    return $stmt->fetchAll();
+}
+
+function updateArtisanReviewResponse($reviewId, $response) {
+    global $pdo;
+    try {
+        $stmt = $pdo->prepare("UPDATE ratings SET artisan_response = ? WHERE id = ?");
+        return $stmt->execute([$response, $reviewId]);
+    } catch (PDOException $e) {
+        error_log("Artisan review response update error: " . $e->getMessage());
+        return false;
+    }
 }
 
 ?>

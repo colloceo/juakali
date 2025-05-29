@@ -83,6 +83,21 @@ if (isset($_POST['add_to_cart'])) {
     exit();
 }
 
+// --- START: Fetch cart item count for the navigation bar ---
+$cart_item_count = 0;
+try {
+    $stmt = $pdo->prepare("SELECT SUM(quantity) AS total_quantity FROM cart WHERE user_id = ?");
+    $stmt->execute([$user_id]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($result && $result['total_quantity'] !== null) {
+        $cart_item_count = (int)$result['total_quantity'];
+    }
+} catch (PDOException $e) {
+    error_log("Error fetching cart item count for navigation: " . $e->getMessage());
+    $cart_item_count = 0; // Default to 0 if there's an error
+}
+// --- END: Fetch cart item count ---
+
 if (isset($_POST['add_to_wishlist'])) {
     $product_id = (int)$_POST['product_id'];
     if (addToWishlist($user_id, $product_id)) { // Assuming addToWishlist handles uniqueness
@@ -184,8 +199,13 @@ $categories = ['All', 'Decor', 'Textiles', 'Food', 'Personal Care'];
                     <i class="fas fa-store text-lg"></i>
                     <span></span>
                 </a>
-                <a href="cart.php" aria-label="Cart" class="flex items-center space-x-1 hover:text-indigo-900 focus:outline-none rounded-md px-2 py-1">
+                 <a href="cart.php" aria-label="Cart" class="relative flex items-center space-x-1 hover:text-indigo-900 focus:outline-none rounded-md px-2 py-1">
                     <i class="fas fa-shopping-cart text-lg"></i>
+                    <?php if ($cart_item_count > 0): ?>
+                        <span class="absolute -top-2 -right-2 bg-red-600 text-white rounded-full text-xs px-2 py-1 flex items-center justify-center min-w-[1.5rem] h-[1.5rem] leading-none">
+                            <?php echo $cart_item_count; ?>
+                        </span>
+                    <?php endif; ?>
                     <span></span>
                 </a>
                 <div class="relative group">
