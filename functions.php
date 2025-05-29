@@ -399,4 +399,95 @@ function updateArtisanReviewResponse($reviewId, $response) {
     }
 }
 
+function getTotalArtisansCount() {
+    global $pdo;
+    $stmt = $pdo->query("SELECT COUNT(id) FROM artisans");
+    return $stmt->fetchColumn();
+}
+
+function getTotalProductsCount() {
+    global $pdo;
+    $stmt = $pdo->query("SELECT COUNT(id) FROM products");
+    return $stmt->fetchColumn();
+}
+
+function getApprovedProductsCount() {
+    global $pdo;
+    $stmt = $pdo->query("SELECT COUNT(id) FROM products WHERE status = 'Approved'");
+    return $stmt->fetchColumn();
+}
+
+function getPendingProductsCount() {
+    global $pdo;
+    $stmt = $pdo->query("SELECT COUNT(id) FROM products WHERE status = 'Pending'");
+    return $stmt->fetchColumn();
+}
+
+function getTotalSalesVolume() {
+    global $pdo;
+    // Assuming 'Delivered' or 'Completed' orders contribute to total sales.
+    // Adjust status as per your order lifecycle.
+    $stmt = $pdo->query("SELECT SUM(total) FROM orders WHERE status = 'Delivered'");
+    return $stmt->fetchColumn() ?? 0.00;
+}
+
+function getAverageOrderValue() {
+    global $pdo;
+    $stmt = $pdo->query("SELECT AVG(total) FROM orders WHERE status = 'Delivered'");
+    return $stmt->fetchColumn() ?? 0.00;
+}
+
+function getTotalUsersCount() {
+    global $pdo;
+    $stmt = $pdo->query("SELECT COUNT(id) FROM users");
+    return $stmt->fetchColumn();
+}
+
+function getNewUsersCountLastXDays($days) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT COUNT(id) FROM users WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)");
+    $stmt->execute([$days]);
+    return $stmt->fetchColumn();
+}
+
+function getNewArtisansCountLastXDays($days) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT COUNT(id) FROM artisans WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)");
+    $stmt->execute([$days]);
+    return $stmt->fetchColumn();
+}
+
+function getRecentActivities($limit = 10) {
+    global $pdo;
+    $activities = [];
+
+    // Recent Product Uploads
+    $stmt = $pdo->query("SELECT id, name, created_at, 'product_upload' AS type FROM products ORDER BY created_at DESC LIMIT {$limit}");
+    while ($row = $stmt->fetch()) {
+        $activities[] = $row;
+    }
+
+    // Recent Orders
+    $stmt = $pdo->query("SELECT id, created_at, 'new_order' AS type FROM orders ORDER BY created_at DESC LIMIT {$limit}");
+    while ($row = $stmt->fetch()) {
+        $activities[] = $row;
+    }
+
+    // Recent User Registrations
+    $stmt = $pdo->query("SELECT id, name, created_at, 'user_registration' AS type FROM users ORDER BY created_at DESC LIMIT {$limit}");
+    while ($row = $stmt->fetch()) {
+        $activities[] = $row;
+    }
+
+    // Sort activities by created_at in descending order
+    usort($activities, function($a, $b) {
+        return strtotime($b['created_at']) - strtotime($a['created_at']);
+    });
+
+    // Return only the top N activities
+    return array_slice($activities, 0, $limit);
+}
+
+
+
 ?>
