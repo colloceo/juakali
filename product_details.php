@@ -85,7 +85,7 @@
                 <a href="/cart.php" class="text-gray-600 hover:text-gray-800">Cart</a>
                 <a href="/wishlist.php" class="text-gray-600 hover:text-gray-800">Wishlist</a>
                 <?php if (isset($_SESSION['user_id'])): ?>
-                    <a href="/logout.php" class="text-gray-600 hover:text-gray-800">Logout</a>
+                    <a href="logout.php" class="text-gray-600 hover:text-gray-800">Logout</a>
                 <?php else: ?>
                     <a href="/login.php" class="text-gray-600 hover:text-gray-800">Login</a>
                 <?php endif; ?>
