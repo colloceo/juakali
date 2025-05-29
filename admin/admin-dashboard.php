@@ -15,6 +15,135 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['a
     exit();
 }
 
+// Handle user deletion
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'delete_user') {
+    $user_id_to_delete = filter_input(INPUT_POST, 'user_id', FILTER_VALIDATE_INT);
+    if ($user_id_to_delete) {
+        if (deleteUser($user_id_to_delete)) {
+            $_SESSION['success_message'] = "User deleted successfully.";
+        } else {
+            $_SESSION['error_message'] = "Failed to delete user.";
+        }
+    } else {
+        $_SESSION['error_message'] = "Invalid user ID.";
+    }
+    header("Location: admin-dashboard.php?tab=users"); // Redirect back to users tab
+    exit();
+}
+
+// Handle user suspension
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'suspend_user') {
+    $user_id_to_suspend = filter_input(INPUT_POST, 'user_id', FILTER_VALIDATE_INT);
+    if ($user_id_to_suspend) {
+        if (suspendUser($user_id_to_suspend)) {
+            $_SESSION['success_message'] = "User suspended successfully.";
+        } else {
+            $_SESSION['error_message'] = "Failed to suspend user.";
+        }
+    } else {
+        $_SESSION['error_message'] = "Invalid user ID.";
+    }
+    header("Location: admin-dashboard.php?tab=users");
+    exit();
+}
+
+// Handle user reactivation
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'reactivate_user') {
+    $user_id_to_reactivate = filter_input(INPUT_POST, 'user_id', FILTER_VALIDATE_INT);
+    if ($user_id_to_reactivate) {
+        if (reactivateUser($user_id_to_reactivate)) {
+            $_SESSION['success_message'] = "User reactivated successfully.";
+        } else {
+            $_SESSION['error_message'] = "Failed to reactivate user.";
+        }
+    } else {
+        $_SESSION['error_message'] = "Invalid user ID.";
+    }
+    header("Location: admin-dashboard.php?tab=users");
+    exit();
+}
+
+// Handle artisan creation
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'create_artisan') {
+    $user_id = filter_input(INPUT_POST, 'user_id', FILTER_VALIDATE_INT);
+    $name = filter_input(INPUT_POST, 'name', FILTER_SANITIZE_STRING);
+    $bio = filter_input(INPUT_POST, 'bio', FILTER_SANITIZE_STRING);
+    $location = filter_input(INPUT_POST, 'location', FILTER_SANITIZE_STRING);
+    $image_url = null;
+
+    // Check if user_id is valid and not already an artisan
+    if ($user_id) {
+        $existingArtisan = getArtisanByUserId($user_id);
+        if ($existingArtisan) {
+            $_SESSION['error_message'] = "User ID #{$user_id} is already registered as an artisan.";
+        } else {
+            if (isset($_FILES['image']) && $_FILES['image']['error'] == UPLOAD_ERR_OK) {
+                $image_url = uploadImage($_FILES['image']);
+            }
+
+            if (registerArtisan($user_id, $name, $bio, $location, $image_url)) {
+                $_SESSION['success_message'] = "Artisan '{$name}' created successfully!";
+            } else {
+                $_SESSION['error_message'] = "Failed to create artisan. Ensure all fields are valid and user exists.";
+            }
+        }
+    } else {
+        $_SESSION['error_message'] = "Invalid User ID provided for artisan creation.";
+    }
+    header("Location: admin-dashboard.php?tab=artisans");
+    exit();
+}
+
+
+// Handle artisan deletion
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'delete_artisan') {
+    $artisan_id_to_delete = filter_input(INPUT_POST, 'artisan_id', FILTER_VALIDATE_INT);
+    if ($artisan_id_to_delete) {
+        if (deleteArtisan($artisan_id_to_delete)) {
+            $_SESSION['success_message'] = "Artisan deleted successfully.";
+        } else {
+            $_SESSION['error_message'] = "Failed to delete artisan.";
+        }
+    } else {
+        $_SESSION['error_message'] = "Invalid artisan ID.";
+    }
+    header("Location: admin-dashboard.php?tab=artisans"); // Redirect back to artisans tab
+    exit();
+}
+
+// Handle artisan suspension
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'suspend_artisan') {
+    $artisan_id_to_suspend = filter_input(INPUT_POST, 'artisan_id', FILTER_VALIDATE_INT);
+    if ($artisan_id_to_suspend) {
+        if (suspendArtisan($artisan_id_to_suspend)) {
+            $_SESSION['success_message'] = "Artisan suspended successfully.";
+        } else {
+            $_SESSION['error_message'] = "Failed to suspend artisan.";
+        }
+    } else {
+        $_SESSION['error_message'] = "Invalid artisan ID.";
+    }
+    header("Location: admin-dashboard.php?tab=artisans");
+    exit();
+}
+
+// Handle artisan reactivation
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'reactivate_artisan') {
+    $artisan_id_to_reactivate = filter_input(INPUT_POST, 'artisan_id', FILTER_VALIDATE_INT);
+    if ($artisan_id_to_reactivate) {
+        if (reactivateArtisan($artisan_id_to_reactivate)) {
+            $_SESSION['success_message'] = "Artisan reactivated successfully.";
+        } else {
+            $_SESSION['error_message'] = "Failed to reactivate artisan.";
+        }
+    } else {
+        $_SESSION['error_message'] = "Invalid artisan ID.";
+    }
+    header("Location: admin-dashboard.php?tab=artisans");
+    exit();
+}
+
+
 // Fetch data for KPIs
 $totalArtisans = getTotalArtisansCount();
 $totalProducts = getTotalProductsCount();
@@ -39,6 +168,18 @@ $orders = $pdo->query("SELECT o.*, u.name AS customer
                        FROM orders o
                        JOIN users u ON o.user_id = u.id")
               ->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch all users (for Users tab)
+$users = getAllUsers();
+
+// Fetch all artisans (for Artisans tab)
+// We need to fetch artisans along with their linked user email for better identification
+$artisans = $pdo->query("SELECT a.*, u.email AS user_email
+                         FROM artisans a
+                         JOIN users u ON a.user_id = u.id
+                         ORDER BY a.created_at DESC")
+                ->fetchAll(PDO::FETCH_ASSOC);
+
 
 // Handle success/error messages
 $success_message = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : null;
@@ -182,6 +323,17 @@ $active_tab = isset($_GET['tab']) ? $_GET['tab'] : 'overview'; // Default to ove
             font-size: 0.85rem;
             color: #888;
         }
+        .create-form-section {
+            background-color: #f9f9f9;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-top: 1.5rem;
+            border: 1px solid #eee;
+        }
+        .create-form-section h5 {
+            color: #FF5733;
+            margin-bottom: 1rem;
+        }
     </style>
 </head>
 <body>
@@ -193,7 +345,6 @@ $active_tab = isset($_GET['tab']) ? $_GET['tab'] : 'overview'; // Default to ove
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="manage-artisans.php">Manage Artisans</a></li>
                     <li class="nav-item"><a class="nav-link" href="../logout.php">Logout</a></li>
                 </ul>
             </div>
@@ -235,6 +386,20 @@ $active_tab = isset($_GET['tab']) ? $_GET['tab'] : 'overview'; // Default to ove
                         id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders"
                         type="button" role="tab" aria-controls="orders" aria-selected="<?php echo ($active_tab == 'orders' ? 'true' : 'false'); ?>">
                     Orders
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link <?php echo ($active_tab == 'users' ? 'active' : ''); ?>"
+                        id="users-tab" data-bs-toggle="tab" data-bs-target="#users"
+                        type="button" role="tab" aria-controls="users" aria-selected="<?php echo ($active_tab == 'users' ? 'true' : 'false'); ?>">
+                    Users
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link <?php echo ($active_tab == 'artisans' ? 'active' : ''); ?>"
+                        id="artisans-tab" data-bs-toggle="tab" data-bs-target="#artisans"
+                        type="button" role="tab" aria-controls="artisans" aria-selected="<?php echo ($active_tab == 'artisans' ? 'true' : 'false'); ?>">
+                    Artisans
                 </button>
             </li>
         </ul>
@@ -361,6 +526,119 @@ $active_tab = isset($_GET['tab']) ? $_GET['tab'] : 'overview'; // Default to ove
                     </table>
                 <?php else: ?>
                     <p class="no-data">No orders found.</p>
+                <?php endif; ?>
+            </div>
+
+            <div class="tab-pane fade <?php echo ($active_tab == 'users' ? 'show active' : ''); ?>"
+                 id="users" role="tabpanel" aria-labelledby="users-tab">
+                <h5 class="mt-3">Manage Users</h5>
+                <?php if (!empty($users)): ?>
+                    <table class="dashboard-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Status</th>
+                                <th>Registered Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($users as $user): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($user['id']); ?></td>
+                                    <td><?php echo htmlspecialchars($user['name']); ?></td>
+                                    <td><?php echo htmlspecialchars(ucfirst($user['status'] ?? 'unknown')); ?></td> <td><?php echo date('Y-m-d H:i:s', strtotime($user['created_at'])); ?></td>
+                                    <td>
+                                        <a href="admin-user-edit.php?id=<?php echo $user['id']; ?>" class="btn btn-custom btn-sm">Edit</a>
+                                        <form method="POST" style="display:inline-block; margin-left: 5px;">
+                                            <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
+                                            <?php if (($user['status'] ?? 'active') == 'active'): ?> <button type="submit" name="action" value="suspend_user" class="btn btn-warning btn-sm" onclick="return confirm('Are you sure you want to suspend this user? They will not be able to log in.')">Suspend</button>
+                                            <?php else: ?>
+                                                <button type="submit" name="action" value="reactivate_user" class="btn btn-success btn-sm" onclick="return confirm('Are you sure you want to reactivate this user?')">Reactivate</button>
+                                            <?php endif; ?>
+                                            <button type="submit" name="action" value="delete_user" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this user? This action cannot be undone.')">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php else: ?>
+                    <p class="no-data">No users found.</p>
+                <?php endif; ?>
+            </div>
+
+            <div class="tab-pane fade <?php echo ($active_tab == 'artisans' ? 'show active' : ''); ?>"
+                 id="artisans" role="tabpanel" aria-labelledby="artisans-tab">
+                <h5 class="mt-3">Manage Artisans</h5>
+                <div class="create-form-section mb-4">
+                    <h5>Create New Artisan</h5>
+                    <form method="POST" enctype="multipart/form-data">
+                        <input type="hidden" name="action" value="create_artisan">
+                        <div class="mb-3">
+                            <label for="create_user_id" class="form-label">Linked User ID</label>
+                            <input type="number" class="form-control" id="create_user_id" name="user_id" required placeholder="User ID from 'Users' tab">
+                        </div>
+                        <div class="mb-3">
+                            <label for="create_name" class="form-label">Artisan Name</label>
+                            <input type="text" class="form-control" id="create_name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="create_bio" class="form-label">Bio</label>
+                            <textarea class="form-control" id="create_bio" name="bio" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="create_location" class="form-label">Location</label>
+                            <input type="text" class="form-control" id="create_location" name="location">
+                        </div>
+                        <div class="mb-3">
+                            <label for="create_image" class="form-label">Profile Image</label>
+                            <input type="file" class="form-control" id="create_image" name="image" accept="image/*">
+                        </div>
+                        <button type="submit" class="btn btn-custom">Add Artisan</button>
+                    </form>
+                </div>
+
+                <?php if (!empty($artisans)): ?>
+                    <table class="dashboard-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Linked User Email</th>
+                                <th>Location</th>
+                                <th>Status</th>
+                                <th>Registered Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($artisans as $artisan): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($artisan['id']); ?></td>
+                                    <td><?php echo htmlspecialchars($artisan['name']); ?></td>
+                                    <td><?php echo htmlspecialchars($artisan['user_email'] ?? 'N/A'); ?></td>
+                                    <td><?php echo htmlspecialchars($artisan['location'] ?? 'N/A'); ?></td>
+                                    <td><?php echo htmlspecialchars(ucfirst($artisan['status'] ?? 'unknown')); ?></td> <td><?php echo date('Y-m-d H:i:s', strtotime($artisan['created_at'])); ?></td>
+                                    <td>
+                                        <a href="admin-artisan-edit.php?id=<?php echo $artisan['id']; ?>" class="btn btn-custom btn-sm">Edit</a>
+                                        <form method="POST" style="display:inline-block; margin-left: 5px;">
+                                            <input type="hidden" name="artisan_id" value="<?php echo $artisan['id']; ?>">
+                                            <?php if (($artisan['status'] ?? 'active') == 'active'): ?> <button type="submit" name="action" value="suspend_artisan" class="btn btn-warning btn-sm" onclick="return confirm('Are you sure you want to suspend this artisan? They will not be able to log in and their products may be hidden.')">Suspend</button>
+                                            <?php else: ?>
+                                                <button type="submit" name="action" value="reactivate_artisan" class="btn btn-success btn-sm" onclick="return confirm('Are you sure you want to reactivate this artisan?')">Reactivate</button>
+                                            <?php endif; ?>
+                                            <button type="submit" name="action" value="delete_artisan" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this artisan? This will also remove their products and reviews.')">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php else: ?>
+                    <p class="no-data">No artisans found.</p>
                 <?php endif; ?>
             </div>
         </div>

@@ -488,6 +488,91 @@ function getRecentActivities($limit = 10) {
     return array_slice($activities, 0, $limit);
 }
 
+function getAllUsers() {
+    global $pdo;
+    $stmt = $pdo->query("SELECT id, name, email, created_at FROM users ORDER BY created_at DESC");
+    return $stmt->fetchAll();
+}
+
+function getUserByIdAdmin($userId) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT id, name, email FROM users WHERE id = ?");
+    $stmt->execute([$userId]);
+    return $stmt->fetch();
+}
+
+function updateUser($userId, $name, $email, $password = null) {
+    global $pdo;
+    try {
+        if ($password) {
+            $hashed_password = hashPassword($password);
+            $stmt = $pdo->prepare("UPDATE users SET name = ?, email = ?, password = ? WHERE id = ?");
+            return $stmt->execute([$name, $email, $hashed_password, $userId]);
+        } else {
+            $stmt = $pdo->prepare("UPDATE users SET name = ?, email = ? WHERE id = ?");
+            return $stmt->execute([$name, $email, $userId]);
+        }
+    } catch (PDOException $e) {
+        error_log("User update error: " . $e->getMessage());
+        return false;
+    }
+}
+
+function deleteUser($userId) {
+    global $pdo;
+    try {
+
+        $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
+        return $stmt->execute([$userId]);
+    } catch (PDOException $e) {
+        error_log("User deletion error: " . $e->getMessage());
+        return false;
+    }
+}
+
+function suspendUser($userId) {
+    global $pdo;
+    try {
+        $stmt = $pdo->prepare("UPDATE users SET status = 'suspended' WHERE id = ?");
+        return $stmt->execute([$userId]);
+    } catch (PDOException $e) {
+        error_log("Suspend user error: " . $e->getMessage());
+        return false;
+    }
+}
+
+function reactivateUser($userId) {
+    global $pdo;
+    try {
+        $stmt = $pdo->prepare("UPDATE users SET status = 'active' WHERE id = ?");
+        return $stmt->execute([$userId]);
+    } catch (PDOException $e) {
+        error_log("Reactivate user error: " . $e->getMessage());
+        return false;
+    }
+}
+
+function suspendArtisan($artisanId) {
+    global $pdo;
+    try {
+        $stmt = $pdo->prepare("UPDATE artisans SET status = 'suspended' WHERE id = ?");
+        return $stmt->execute([$artisanId]);
+    } catch (PDOException $e) {
+        error_log("Suspend artisan error: " . $e->getMessage());
+        return false;
+    }
+}
+
+function reactivateArtisan($artisanId) {
+    global $pdo;
+    try {
+        $stmt = $pdo->prepare("UPDATE artisans SET status = 'active' WHERE id = ?");
+        return $stmt->execute([$artisanId]);
+    } catch (PDOException $e) {
+        error_log("Reactivate artisan error: " . $e->getMessage());
+        return false;
+    }
+}
 
 
 ?>
