@@ -549,6 +549,7 @@ $active_tab = isset($_GET['tab']) ? $_GET['tab'] : 'overview'; // Default to ove
                                 <tr>
                                     <td><?php echo htmlspecialchars($user['id']); ?></td>
                                     <td><?php echo htmlspecialchars($user['name']); ?></td>
+                                    <td><?php echo htmlspecialchars($user['email']);?></td>
                                     <td><?php echo htmlspecialchars(ucfirst($user['status'] ?? 'unknown')); ?></td> <td><?php echo date('Y-m-d H:i:s', strtotime($user['created_at'])); ?></td>
                                     <td>
                                         <a href="admin-user-edit.php?id=<?php echo $user['id']; ?>" class="btn btn-custom btn-sm">Edit</a>
